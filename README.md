@@ -31,8 +31,8 @@
 Требуется Docker 24+ и Docker Compose v2.
 
 ```bash
-git clone <repository-url>
-cd marketvault-academy
+git clone https://github.com/Lon-ik/MarketVault-Academy-CTF.git
+cd MarketVault-Academy-CTF
 chmod +x scripts/*.sh scripts/flags.py
 ./scripts/reset.sh
 ```
@@ -92,6 +92,9 @@ marketvault-academy/
 ```
 
 ## Изоляция и секреты
+
+> Значения в `.env.example` предназначены только для локального учебного запуска. Не используйте их на публичных серверах или в production. Для любого внешнего развёртывания задайте собственные секреты и учётные данные.
+
 
 - Сеть `backend` помечена `internal: true`, наружу опубликованы только UI и gateway.
 - Флаги генерируются в `runtime/` и не коммитятся.
