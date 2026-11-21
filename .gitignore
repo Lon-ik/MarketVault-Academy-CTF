@@ -1,0 +1,15 @@
+data/
+node_modules/
+__pycache__/
+*.pyc
+*.log
+.pytest_cache/
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+runtime/
+tests/.state/
+services/*/flags/
+.venv-tests/

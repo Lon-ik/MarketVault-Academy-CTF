@@ -1,0 +1,238 @@
+name: marketvault-academy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-marketvault}"
+      POSTGRES_USER: "${POSTGRES_USER:-marketvault}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-marketvault}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    mem_limit: 512m
+    cpus: 1.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marketvault} -d ${POSTGRES_DB:-marketvault}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER:-root}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD:-marketvault}"
+      MONGO_INITDB_DATABASE: "${MONGO_DB:-marketvault}"
+    volumes:
+      - mongodata:/data/db
+      - ./db/mongo:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    mem_limit: 512m
+    cpus: 1.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u \"$$MONGO_INITDB_ROOT_USERNAME\" -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\" | grep 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD:-marketvault}"
+    volumes:
+      - redisdata:/data
+    networks:
+      - backend
+    mem_limit: 128m
+    cpus: 0.5
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-marketvault} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      network: host
+    environment:
+      PORT: "8000"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-marketvault}:${POSTGRES_PASSWORD:-marketvault}@postgres:5432/${POSTGRES_DB:-marketvault}"
+      DB_SCHEMA: auth
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-marketvault}@redis:6379/0"
+      JWT_SECRET: "${JWT_SECRET:-weak-jwt-secret}"
+      JWT_ALGORITHM: HS256
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://localhost:3000}"
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      network: host
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-marketvault}:${POSTGRES_PASSWORD:-marketvault}@postgres:5432/${POSTGRES_DB:-marketvault}"
+      DB_SCHEMA: inventory
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-marketvault}@redis:6379/1"
+      JWT_SECRET: "${JWT_SECRET:-weak-jwt-secret}"
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    expose:
+      - "8080"
+    volumes:
+      - ./runtime/flags/inventory:/var/www/flags:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/inventory/health | grep -q ok"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    mem_limit: 128m
+    cpus: 0.5
+    restart: unless-stopped
+
+  legacy-service:
+    build:
+      context: ./services/legacy-service
+      network: host
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: "${POSTGRES_DB:-marketvault}"
+      PGUSER: "${POSTGRES_USER:-marketvault}"
+      PGPASSWORD: "${POSTGRES_PASSWORD:-marketvault}"
+      DB_SCHEMA: legacy
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-marketvault}"
+      FLAG_DIR: /var/www/flags
+    volumes:
+      - ./runtime/flags/legacy:/var/www/flags:ro
+    expose:
+      - "80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+
+  stats-service:
+    build:
+      context: ./services/stats-service
+      network: host
+    environment:
+      PORT: "8000"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-marketvault}@redis:6379/2"
+      STATS_TOKEN: "${STATS_TOKEN:-internal-stats-token}"
+    expose:
+      - "8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    mem_limit: 128m
+    cpus: 0.25
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      network: host
+    environment:
+      PORT: "4000"
+      AUTH_SERVICE_URL: "http://auth-service:8000"
+      INVENTORY_SERVICE_URL: "http://inventory-service:8080"
+      LEGACY_SERVICE_URL: "http://legacy-service"
+      STATS_SERVICE_URL: "http://stats-service:8000"
+      MONGO_URL: "mongodb://${MONGO_USER:-root}:${MONGO_PASSWORD:-marketvault}@mongo:27017/${MONGO_DB:-marketvault}?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-marketvault}@redis:6379/3"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-marketvault}:${POSTGRES_PASSWORD:-marketvault}@postgres:5432/${POSTGRES_DB:-marketvault}"
+      JWT_SECRET: "${JWT_SECRET:-weak-jwt-secret}"
+      SESSION_SECRET: "${SESSION_SECRET:-weak-session-secret}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000}"
+    ports:
+      - "4000:4000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      legacy-service:
+        condition: service_started
+      stats-service:
+        condition: service_started
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - edge
+      - backend
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./services/frontend
+      network: host
+    environment:
+      VITE_API_BASE_URL: "${VITE_API_BASE_URL:-}"
+      VITE_APP_NAME: "MarketVault Academy"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - edge
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+
+networks:
+  edge:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+
+volumes:
+  pgdata:
+  mongodata:
+  redisdata:
