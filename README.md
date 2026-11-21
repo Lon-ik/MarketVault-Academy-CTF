@@ -1,7 +1,20 @@
+
 # MarketVault-Academy-CTF
 Учебная CTF-платформа: 30 намеренно уязвимых веб-сценариев, полиглотные микросервисы и прокачка прогресса — XP, ранги, достижения и scoreboard.
 
 > ⚠️ **Только для обучения.** Проект содержит намеренные уязвимости (SQLi, SSRF, RFI/XXE, XSS, CSRF, IDOR, race condition и другие). Запускайте его в изолированной среде, не подключайте реальные данные, секреты и платёжные системы.
+
+## 
+Скриншоты
+<img width="1879" height="948" alt="Screenshot 2026-11-21 at 18-12-28 MarketVault Academy" src="https://github.com/user-attachments/assets/4e6aec6f-9198-4945-9945-384cd66c9527" />
+
+<img width="1879" height="3051" alt="Screenshot 2026-11-21 at 18-00-32 MarketVault Academy" src="https://github.com/user-attachments/assets/2c5dc1de-5227-4537-9f4c-544c475fd3a8" />
+
+<img width="1879" height="948" alt="Screenshot 2026-11-21 at 18-12-05 MarketVault Academy" src="https://github.com/user-attachments/assets/42e7e1ab-7854-497c-b23e-d7647ac5254b" />
+
+<img width="1879" height="948" alt="Screenshot 2026-11-21 at 18-12-12 MarketVault Academy" src="https://github.com/user-attachments/assets/b1734999-c2d0-401f-b204-6c41bf05e114" />
+
+<img width="1879" height="948" alt="Screenshot 2026-11-21 at 18-12-19 MarketVault Academy" src="https://github.com/user-attachments/assets/e9c0bff3-a071-4eec-a6d1-1da544d670b3" />
 
 ## Документация
 
