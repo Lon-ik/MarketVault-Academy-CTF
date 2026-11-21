@@ -3,6 +3,14 @@
 
 > ⚠️ **Только для обучения.** Проект содержит намеренные уязвимости (SQLi, SSRF, RFI/XXE, XSS, CSRF, IDOR, race condition и другие). Запускайте его в изолированной среде, не подключайте реальные данные, секреты и платёжные системы.
 
+## Документация
+
+- [Руководство по запуску для начинающих](docs/GETTING_STARTED.md)
+- [Архитектура проекта](docs/architecture.md)
+- [Матрица CTF-заданий](docs/challenge-matrix.md)
+- [API-контракты](docs/api-contracts.md)
+
+
 ## Возможности
 
 - 30 заданий по шести сервисам: auth, API/GraphQL, legacy PHP, inventory (Go), MongoDB, Redis и frontend.
