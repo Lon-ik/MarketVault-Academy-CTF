@@ -40,23 +40,49 @@
 
 ## Запуск
 
-Нужны Docker 24+ и Docker Compose v2.
+Нужны Docker 24+ и Docker Compose v2. Больше ничего ставить не надо.
 
 ```bash
-git clone <repository-url>
-cd marketvault-academy
-chmod +x scripts/*.sh scripts/flags.py
-./scripts/reset.sh
+git clone https://github.com/Lon-ik/MarketVault-Academy-CTF.git
+cd MarketVault-Academy-CTF
+./scripts/start.sh
 ```
+
+Скрипт делает всё сам:
+
+1. проверяет Docker, Compose и занятость портов 3000 и 4000;
+2. создаёт `.env` из `.env.example`, если файла ещё нет;
+3. генерирует флаги, если их нет;
+4. собирает образы и поднимает контейнеры;
+5. ждёт инициализацию PostgreSQL и записывает флаги в базу;
+6. дожидается ответа API и интерфейса и печатает адреса и аккаунты.
+
+Повторный запуск безопасен: уже работающий стенд не пересоздаётся, данные не теряются.
+
+| Команда | Что делает |
+|---------|------------|
+| `./scripts/start.sh` | поднять стенд или достроить запущенный |
+| `./scripts/start.sh --fresh` | удалить тома и поднять заново |
+| `./scripts/start.sh --rotate-flags` | сгенерировать новый набор флагов |
+| `./scripts/start.sh --no-build` | не пересобирать образы |
 
 - Интерфейс: <http://localhost:3000>
 - API: <http://localhost:4000>
 
-`reset.sh` удаляет тома, генерирует флаги, собирает образы и поднимает стенд.
-Только интерфейс и шлюз публикуются наружу, остальное живёт во внутренней сети.
+Если `python3` в системе нет, флаги сгенерируются во временном контейнере
+`python:3.12-alpine` — отдельно ставить Python не нужно.
 
+Наружу опубликованы только интерфейс и шлюз, остальные сервисы живут во внутренней сети.
 Пошаговая инструкция для тех, кто впервые ставит Docker, лежит в
 [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+
+### Остановка
+
+```bash
+docker compose down          # остановить
+docker compose down -v       # остановить и удалить данные
+docker compose logs -f       # смотреть логи
+```
 
 ## Учётные записи
 
@@ -122,7 +148,7 @@ marketvault-academy/
 │   ├── api-contracts.md
 │   ├── challenge-matrix.md
 │   └── manual-testing.md
-├── scripts/                  # reset, flags, tests, isolation, secrets
+├── scripts/                  # start, reset, flags, tests, isolation, secrets
 ├── tests/                    # интеграционные тесты
 └── README.md
 ```
