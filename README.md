@@ -10,6 +10,21 @@
 > Проект намеренно уязвим. Запускайте его только в изолированном окружении, не подключайте
 > реальные данные, секреты и платёжные системы и не выставляйте наружу без понимания рисков.
 
+## Скрины
+
+
+<img width="1879" height="4235" alt="Screenshot 2026-11-22 at 13-47-15 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/6591edfb-5638-497d-8ae8-2fe694fa13fd" />
+
+
+<img width="1879" height="2588" alt="Screenshot 2026-11-22 at 13-47-29 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/5626cdb9-cd1b-45ca-9ec3-fad9d0f3bb02" />
+
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-22 at 13-47-37 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/b56b91a8-d80b-421d-a5c4-97a08c09ce3c" />
+
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-22 at 13-47-46 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/dec319ba-ba5b-494d-9077-1d2fb70cf807" />
+
+
 ## Что внутри
 
 - 32 задания на пяти приложениях: auth-service, api-gateway, legacy-service,
