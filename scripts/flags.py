@@ -41,6 +41,8 @@ SLUGS = [
     "postmessage-xss",
     "session-fixation",
     "cache-poisoning",
+    "jwt-kid-injection",
+    "inventory-negative-quantity",
 ]
 
 FILE_FLAGS = {

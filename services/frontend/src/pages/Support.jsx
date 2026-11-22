@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { request } from "../api";
+import Icon from "../components/Icon";
 
 function nextId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 }
 
 export default function SupportPage() {
@@ -10,132 +11,132 @@ export default function SupportPage() {
   const [draft, setDraft] = useState("");
   const logRef = useRef(null);
 
-  useEffect(() => {
-    request("/api/frontend/bootstrap?page=support").catch(() => {});
-    const handler = (event) => {
-      if (typeof event.data !== "string" || !event.data.trim()) {
-        return;
-      }
-      setMessages((previous) => [
-        ...previous,
-        { id: nextId(), role: "operator", raw: event.data },
-      ]);
-    };
+  useEffect(function () {
+    request("/api/frontend/bootstrap?page=support").catch(function () {});
+    function handler(event) {
+      if (typeof event.data !== "string" || !event.data.trim()) return;
+      setMessages(function (previous) {
+        return previous.concat([{ id: nextId(), role: "operator", raw: event.data }]);
+      });
+    }
     window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    return function () {
+      window.removeEventListener("message", handler);
+    };
   }, []);
 
-  useEffect(() => {
+  useEffect(function () {
     const node = logRef.current;
     if (node) node.scrollTop = node.scrollHeight;
   }, [messages]);
 
-  function sendMessage() {
+  function send() {
     const text = draft.trim();
     if (!text) return;
-    setMessages((previous) => [...previous, { id: nextId(), role: "you", text }]);
+    setMessages(function (previous) {
+      return previous.concat([{ id: nextId(), role: "you", text: text }]);
+    });
     setDraft("");
   }
 
   function submit(event) {
     event.preventDefault();
-    sendMessage();
+    send();
   }
 
   function onKeyDown(event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendMessage();
+      send();
     }
   }
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="page-header__text">
-          <p className="kicker">support channel</p>
-          <h1>Служба поддержки</h1>
-          <p className="page-subtitle">
-            Учебный канал для сообщений оператора. Сообщения сохраняются только в этой вкладке.
+      <header className="page-head">
+        <div className="page-head__text">
+          <p className="eyebrow">Поддержка</p>
+          <h1>Чат со службой поддержки</h1>
+          <p className="page-sub">
+            Демонстрационный канал: сообщения живут только в этой вкладке. Оператор отвечает
+            через postMessage, поэтому окно поддержки можно встроить на чужую страницу.
           </p>
         </div>
       </header>
 
-      <div className="support-layout">
-        <section className="panel support-panel">
-          <div className="panel__header">
+      <div className="grid-2 grid-2--side">
+        <section className="panel">
+          <div className="panel__head">
             <h2>Диалог</h2>
-            <span className="support-status">
-              <span className="status-dot" /> connected
+            <span className="panel__meta">
+              <span className="dot dot--on" style={{ display: "inline-block", marginRight: 6 }} />
+              оператор на связи
             </span>
           </div>
 
           <div className="support-log" ref={logRef} aria-live="polite">
             {messages.length === 0 ? (
-              <p className="support-empty">
-                Сообщений пока нет. Напишите первое сообщение — ответ оператора появится здесь.
-              </p>
+              <p className="support-empty">Напишите первое сообщение, ответ появится здесь.</p>
             ) : (
-              messages.map((message) =>
-                message.role === "you" ? (
-                  <div className="support-msg support-msg--you" key={message.id}>
-                    <span className="support-msg__role">you</span>
-                    <p>{message.text}</p>
-                  </div>
-                ) : (
+              messages.map(function (message) {
+                if (message.role === "you") {
+                  return (
+                    <div className="support-msg support-msg--you" key={message.id}>
+                      <span className="support-msg__role">вы</span>
+                      <p>{message.text}</p>
+                    </div>
+                  );
+                }
+                return (
                   <div className="support-msg support-msg--operator" key={message.id}>
-                    <span className="support-msg__role">operator</span>
-                    <div
-                      className="support-msg__body"
-                      dangerouslySetInnerHTML={{ __html: message.raw }}
-                    />
+                    <span className="support-msg__role">оператор</span>
+                    <div dangerouslySetInnerHTML={{ __html: message.raw }} />
                   </div>
-                )
-              )
+                );
+              })
             )}
           </div>
 
-          <form className="support-composer" onSubmit={submit}>
-            <label className="visually-hidden" htmlFor="support-message">
-              Сообщение
-            </label>
+          <form className="composer" onSubmit={submit}>
+            <label className="visually-hidden" htmlFor="support-message">Сообщение</label>
             <textarea
               id="support-message"
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={function (event) { setDraft(event.target.value); }}
               onKeyDown={onKeyDown}
               placeholder="Напишите сообщение…"
               rows={2}
             />
-            <button className="button" type="submit" disabled={!draft.trim()}>
+            <button className="btn" type="submit" disabled={!draft.trim()}>
               Отправить
             </button>
           </form>
         </section>
 
-        <aside className="panel support-side-panel">
-          <div className="panel__header">
+        <aside className="panel">
+          <div className="panel__head">
             <h2>О канале</h2>
           </div>
-          <p className="muted">
-            Это демонстрационный канал учебного стенда. Сообщения не отправляются на сервер и
-            исчезают после перезагрузки страницы.
-          </p>
-          <dl className="meta-list">
-            <div>
-              <dt>Статус</dt>
-              <dd>connected</dd>
-            </div>
-            <div>
-              <dt>Транспорт</dt>
-              <dd>postMessage</dd>
-            </div>
-            <div>
-              <dt>Режим</dt>
-              <dd>local demo</dd>
-            </div>
-          </dl>
-          <p className="support-hint">Enter — отправить, Shift+Enter — новая строка.</p>
+          <div className="panel__body stack">
+            <p className="muted" style={{ fontSize: 13.5 }}>
+              Сообщения не сохраняются на сервере и исчезают после перезагрузки страницы.
+            </p>
+            <dl className="meta-list">
+              <div>
+                <dt>Транспорт</dt>
+                <dd>postMessage</dd>
+              </div>
+              <div>
+                <dt>Хранение</dt>
+                <dd>в памяти вкладки</dd>
+              </div>
+              <div>
+                <dt>Проверка источника</dt>
+                <dd>—</dd>
+              </div>
+            </dl>
+            <p className="meta-text">Enter отправляет, Shift+Enter переносит строку.</p>
+          </div>
         </aside>
       </div>
     </div>

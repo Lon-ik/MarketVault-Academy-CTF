@@ -99,7 +99,7 @@
 
 | Метод | Путь | Назначение |
 |-------|------|------------|
-| GET | `/api/academy/challenges` | каталог 30 заданий с полем `is_solved` |
+| GET | `/api/academy/challenges` | каталог 32 заданий с полем `is_solved` |
 | GET | `/api/academy/progress` | `total`, `solved`, `percent`, `byService`, `recent` |
 | GET | `/api/academy/challenges/{slug}/hints?level=1\|2` | подсказки, увеличивает `hints_used` |
 | POST | `/api/academy/challenges/{slug}/reveal` | возвращает `solution_payload`, `vulnerable_code`, `secure_code` |
@@ -109,7 +109,7 @@
 
 ```json
 {
-  "total": 30,
+  "total": 32,
   "solved": 3,
   "percent": 10.0,
   "byService": [ { "service": "auth-service", "total": 8, "solved": 1 } ],
@@ -123,7 +123,7 @@
 { "flag": "MV{...}" }
 ```
 
-Ответ `200`: `{ "solved": true, "progress": { "total": 30, "solved": 4, "percent": 13.3 } }`, `400` при неверном флаге.
+Ответ `200`: `{ "solved": true, "progress": { "total": 32, "solved": 4, "percent": 12.5 } }`, `400` при неверном флаге.
 
 ## Публичные сценарии шлюза
 

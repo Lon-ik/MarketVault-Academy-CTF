@@ -2,105 +2,104 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { request } from "../api";
 import ChallengeCard from "../components/ChallengeCard";
-import Pips from "../components/Pips";
+import Icon from "../components/Icon";
+import Stars from "../components/Stars";
 import {
   achievementsFor,
+  maxScoreFor,
   pointsFor,
   rankFor,
   scoreFor,
-  serviceCode,
 } from "../game";
+import { serviceMeta, trackProgress } from "../guidance";
+import { METHOD, TRACKS } from "../learn";
 
-const STATUS_FILTERS = [
+const STATUS = [
   { value: "all", label: "Все" },
   { value: "open", label: "Открытые" },
   { value: "solved", label: "Решённые" },
 ];
 
-function AchievementIcon({ unlocked }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-      {unlocked ? (
-        <path d="m5 12.5 4.2 4.2L19 7" strokeLinecap="round" strokeLinejoin="round" />
-      ) : (
-        <>
-          <rect x="5" y="10" width="14" height="10" rx="2" />
-          <path d="M8 10V7a4 4 0 0 1 8 0v3" strokeLinecap="round" />
-        </>
-      )}
-    </svg>
-  );
-}
-
 export default function DashboardPage() {
   const [challenges, setChallenges] = useState([]);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState("");
-  const [titleQuery, setTitleQuery] = useState("");
+  const [query, setQuery] = useState("");
   const [service, setService] = useState("all");
   const [difficulty, setDifficulty] = useState("all");
   const [status, setStatus] = useState("all");
+  const [methodOpen, setMethodOpen] = useState(false);
 
-  useEffect(() => {
+  useEffect(function () {
     let active = true;
     Promise.all([request("/api/academy/challenges"), request("/api/academy/progress")])
-      .then(([catalog, summary]) => {
+      .then(function (data) {
         if (!active) return;
-        setChallenges(catalog.challenges);
-        setProgress(summary);
+        setChallenges(data[0].challenges);
+        setProgress(data[1]);
       })
-      .catch((err) => {
+      .catch(function (err) {
         if (active) setError(err.message);
       });
-    return () => {
+    return function () {
       active = false;
     };
   }, []);
 
   const services = useMemo(
-    () => Array.from(new Set(challenges.map((item) => item.service))).sort(),
+    function () {
+      return Array.from(
+        new Set(challenges.map(function (item) { return item.service; }))
+      ).sort();
+    },
     [challenges]
   );
-  const difficulties = useMemo(
-    () => Array.from(new Set(challenges.map((item) => item.difficulty))),
-    [challenges]
+
+  const filtered = useMemo(
+    function () {
+      const needle = query.trim().toLowerCase();
+      return challenges.filter(function (item) {
+        if (service !== "all" && item.service !== service) return false;
+        if (difficulty !== "all" && item.difficulty !== difficulty) return false;
+        if (status === "solved" && !item.is_solved) return false;
+        if (status === "open" && item.is_solved) return false;
+        if (needle) {
+          const haystack = (item.title + " " + item.category + " " + item.description).toLowerCase();
+          if (haystack.indexOf(needle) === -1) return false;
+        }
+        return true;
+      });
+    },
+    [challenges, query, service, difficulty, status]
   );
 
-  const filtered = useMemo(() => {
-    const needle = titleQuery.trim().toLowerCase();
-    return challenges.filter((item) => {
-      if (service !== "all" && item.service !== service) return false;
-      if (difficulty !== "all" && item.difficulty !== difficulty) return false;
-      if (status === "solved" && !item.is_solved) return false;
-      if (status === "open" && item.is_solved) return false;
-      if (needle && !`${item.title} ${item.category}`.toLowerCase().includes(needle)) return false;
-      return true;
-    });
-  }, [challenges, titleQuery, service, difficulty, status]);
+  const grouped = useMemo(
+    function () {
+      const map = new Map();
+      filtered.forEach(function (item) {
+        if (!map.has(item.service)) map.set(item.service, []);
+        map.get(item.service).push(item);
+      });
+      return Array.from(map.entries()).map(function (entry) {
+        return { name: entry[0], items: entry[1] };
+      });
+    },
+    [filtered]
+  );
 
-  const grouped = useMemo(() => {
-    const map = new Map();
-    for (const item of filtered) {
-      if (!map.has(item.service)) map.set(item.service, []);
-      map.get(item.service).push(item);
-    }
-    return Array.from(map.entries()).map(([name, items]) => ({ name, items }));
-  }, [filtered]);
+  const solved = progress ? progress.solved : 0;
+  const total = progress ? progress.total : challenges.length;
+  const score = useMemo(function () { return scoreFor(challenges); }, [challenges]);
+  const maxScore = useMemo(function () { return maxScoreFor(challenges); }, [challenges]);
+  const rank = rankFor(solved);
+  const achievements = useMemo(function () { return achievementsFor(challenges); }, [challenges]);
+  const unlocked = achievements.filter(function (item) { return item.unlocked; }).length;
+  const next = challenges.find(function (item) { return !item.is_solved; });
+  const percent = total ? (solved / total) * 100 : 0;
+  const done = total > 0 && solved === total;
 
-  const filtersActive =
-    titleQuery !== "" || service !== "all" || difficulty !== "all" || status !== "all";
-
-  const solvedCount = progress?.solved ?? 0;
-  const total = progress?.total ?? challenges.length ?? 30;
-  const score = useMemo(() => scoreFor(challenges), [challenges]);
-  const rank = rankFor(solvedCount);
-  const achievements = useMemo(() => achievementsFor(challenges), [challenges]);
-  const unlocked = achievements.filter((item) => item.unlocked).length;
-  const nextMission = challenges.find((item) => !item.is_solved);
-  const allSolved = challenges.length > 0 && solvedCount === total;
-
-  function resetFilters() {
-    setTitleQuery("");
+  function reset() {
+    setQuery("");
     setService("all");
     setDifficulty("all");
     setStatus("all");
@@ -108,225 +107,269 @@ export default function DashboardPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="page-header__text">
-          <p className="kicker">cyber range // operations</p>
-          <h1>Mission board</h1>
-          <p className="page-subtitle">
-            30 уязвимых сценариев по шести сервисам. Выполняйте миссии, забирайте флаги,
-            поднимайтесь в ранге и закрывайте ветки целиком.
+      <section className="hero">
+        <div className="hero__text">
+          <p className="hero__eyebrow">Учебный стенд</p>
+          <h1>Практика по веб-безопасности на живых сервисах</h1>
+          <p>
+            {total} намеренно уязвимых сценария на пяти приложениях: сервис входа, API-шлюз с
+            GraphQL, устаревший PHP-портал, склад на Go и веб-интерфейс. Разбирайте задачи по
+            трекам, забирайте флаги и фиксируйте, как правильно чинить каждую ошибку.
           </p>
         </div>
-      </header>
-
-      <div className="command-deck">
-        <section className="panel agent-panel">
-          <div className="agent-panel__head">
-            <span className="kicker">agent profile</span>
-            <span className="rank-pill">{rank.name}</span>
+        <div className="hero__stats">
+          <div className="stat">
+            <span>Решено</span>
+            <strong>{solved}/{total}</strong>
           </div>
-          <div className="agent-panel__score">
+          <div className="stat">
+            <span>Очки</span>
             <strong>{score}</strong>
-            <span>XP</span>
           </div>
-          <div className="progress-track">
-            <div
-              className="progress-track__fill"
-              style={{ width: `${total ? (solvedCount / total) * 100 : 0}%` }}
-            />
+          <div className="stat">
+            <span>Ранг</span>
+            <strong style={{ fontSize: 15 }}>{rank.name}</strong>
           </div>
-          <div className="agent-stats">
-            <div>
-              <span>Missions</span>
-              <strong>
-                {solvedCount}/{total}
-              </strong>
-            </div>
-            <div>
-              <span>Remaining</span>
-              <strong>{Math.max(0, total - solvedCount)}</strong>
-            </div>
-            <div>
-              <span>Next rank</span>
-              <strong>{rank.next || "MAX"}</strong>
-            </div>
-          </div>
-          {rank.next ? (
-            <p className="agent-panel__note">
-              До ранга {rank.next}: {rank.toNext} missions
-            </p>
-          ) : (
-            <p className="agent-panel__note">Максимальный ранг достигнут</p>
-          )}
-        </section>
-
-        <section className="panel next-panel">
-          <span className="kicker">next objective</span>
-          {nextMission ? (
-            <>
-              <p className="next-panel__meta">
-                {serviceCode(nextMission.service)} / {nextMission.category}
-              </p>
-              <Link className="next-panel__title" to={`/challenge/${nextMission.slug}`}>
-                {nextMission.title}
-              </Link>
-              <p className="next-panel__desc">
-                {nextMission.description.slice(0, 150)}
-                {nextMission.description.length > 150 ? "…" : ""}
-              </p>
-              <div className="next-panel__foot">
-                <Pips difficulty={nextMission.difficulty} />
-                <span className="next-panel__xp">{pointsFor(nextMission)} XP</span>
-                <span className="next-panel__difficulty">{nextMission.difficulty}</span>
-              </div>
-              <Link className="button" to={`/challenge/${nextMission.slug}`}>
-                Открыть briefing
-              </Link>
-            </>
-          ) : (
-            <div className="next-panel__done">
-              <strong>{allSolved ? "Range complete" : "Все миссии закрыты"}</strong>
-              <p>Все доступные задания решены. Отличная работа, агент.</p>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="panel achievements-panel">
-        <div className="panel__header">
-          <h2>Достижения</h2>
-          <span className="panel__meta">
-            {unlocked}/{achievements.length} unlocked
-          </span>
         </div>
-        <div className="achievement-grid">
-          {achievements.map((achievement) => (
-            <div
-              key={achievement.id}
-              className={`achievement ${achievement.unlocked ? "is-unlocked" : ""}`}
-            >
-              <span className="achievement__icon">
-                <AchievementIcon unlocked={achievement.unlocked} />
-              </span>
-              <div>
-                <strong>{achievement.title}</strong>
-                <p>{achievement.description}</p>
-              </div>
-            </div>
-          ))}
+        <div className="hero__bar">
+          <div className="progress">
+            <div className="progress__fill" style={{ width: percent + "%" }} />
+          </div>
         </div>
       </section>
 
       {error ? <p className="alert alert--error">{error}</p> : null}
 
-      <section className="panel ops-panel">
-        <div className="panel__header">
-          <h2>Missions</h2>
-          <span className="panel__meta">
-            {filtered.length} / {challenges.length}
-          </span>
+      <div className="grid-2">
+        <section className="panel">
+          <div className="panel__head">
+            <h2>Продолжить обучение</h2>
+            <span className="panel__meta">{maxScore ? score + " / " + maxScore + " XP" : ""}</span>
+          </div>
+          <div className="panel__body">
+            {next ? (
+              <div className="stack">
+                <div className="tag-row">
+                  <span className="chip chip--service">{serviceMeta(next.service).short}</span>
+                  <span className="chip">{next.category}</span>
+                  <span className={"chip chip--" + next.difficulty}>{next.difficulty}</span>
+                </div>
+                <h3 style={{ fontSize: 17 }}>{next.title}</h3>
+                <p className="muted" style={{ fontSize: 13.5 }}>{next.description}</p>
+                <div className="actions">
+                  <Link className="btn" to={"/challenge/" + next.slug}>
+                    Открыть задание
+                  </Link>
+                  <span className="meta-text">{pointsFor(next)} XP за решение</span>
+                </div>
+              </div>
+            ) : (
+              <div className="stack">
+                <h3>{done ? "Стенд пройден полностью" : "Нет доступных заданий"}</h3>
+                <p className="muted">
+                  Все {total} заданий закрыты. Вернитесь в разбор и проверьте, что сможете
+                  объяснить защиту по каждому классу уязвимостей.
+                </p>
+                <Link className="btn btn--ghost" to="/path">
+                  Открыть учебный план
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel__head">
+            <h2>{METHOD.title}</h2>
+            <button
+              className="btn btn--ghost btn--sm"
+              type="button"
+              style={{ marginLeft: "auto" }}
+              onClick={function () { setMethodOpen(!methodOpen); }}
+            >
+              {methodOpen ? "Свернуть" : "Развернуть"}
+            </button>
+          </div>
+          <div className="panel__body">
+            <ol className="learn-list">
+              {(methodOpen ? METHOD.steps : METHOD.steps.slice(0, 2)).map(function (step, index) {
+                return (
+                  <li key={index}>
+                    <strong>{step.name}.</strong> {step.text}
+                  </li>
+                );
+              })}
+            </ol>
+            {!methodOpen ? (
+              <p className="meta-text" style={{ marginTop: 8 }}>
+                Остальные шаги процесса скрыты, чтобы не растягивать страницу.
+              </p>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <section className="panel">
+        <div className="panel__head">
+          <h2>Учебные треки</h2>
+          <span className="panel__meta">{TRACKS.length} направления, от разведки к логике</span>
+        </div>
+        <div className="panel__body">
+          <div className="track-grid">
+            {TRACKS.map(function (track) {
+              const info = trackProgress(track, challenges);
+              const trackPercent = info.total ? (info.solved / info.total) * 100 : 0;
+              return (
+                <Link className="track-card" to={"/track/" + track.id} key={track.id}>
+                  <div className="track-card__head">
+                    <Icon name={info.solved === info.total && info.total > 0 ? "check" : "target"} size={18} />
+                    <h3>{track.title}</h3>
+                    <span className="chip track-card__level">{track.level}</span>
+                  </div>
+                  <p className="track-card__goal">{track.goal}</p>
+                  <div className="progress progress--sm">
+                    <div
+                      className={info.solved === info.total && info.total > 0 ? "progress__fill progress__fill--done" : "progress__fill"}
+                      style={{ width: trackPercent + "%" }}
+                    />
+                  </div>
+                  <div className="track-card__foot">
+                    <span>
+                      {info.solved} из {info.total}
+                    </span>
+                    <span style={{ marginLeft: "auto" }}>Открыть трек</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__head">
+          <h2>Достижения</h2>
+          <span className="panel__meta">{unlocked} из {achievements.length}</span>
+        </div>
+        <div className="panel__body">
+          <div className="achievement-grid">
+            {achievements.map(function (achievement) {
+              return (
+                <div
+                  key={achievement.id}
+                  className={achievement.unlocked ? "achievement is-unlocked" : "achievement"}
+                >
+                  <span className="achievement__icon">
+                    <Icon name={achievement.unlocked ? "check" : "shield"} size={15} />
+                  </span>
+                  <div>
+                    <strong>{achievement.title}</strong>
+                    <p>{achievement.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__head">
+          <h2>Все задания</h2>
+          <span className="panel__meta">{filtered.length} из {challenges.length}</span>
         </div>
 
-        <div className="toolbar">
-          <div className="field-inline field-inline--grow">
-            <label htmlFor="filter-search">Поиск</label>
+        <div className="filters">
+          <label className="field">
+            <span>Поиск</span>
             <input
-              id="filter-search"
               type="search"
-              value={titleQuery}
-              onChange={(event) => setTitleQuery(event.target.value)}
-              placeholder="Название или категория"
+              value={query}
+              onChange={function (event) { setQuery(event.target.value); }}
+              placeholder="Название, категория, описание"
             />
-          </div>
-          <div className="field-inline">
-            <label htmlFor="filter-service">Сервис</label>
-            <select id="filter-service" value={service} onChange={(event) => setService(event.target.value)}>
-              <option value="all">Все сервисы</option>
-              {services.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
+          </label>
+          <label className="field">
+            <span>Сервис</span>
+            <select value={service} onChange={function (event) { setService(event.target.value); }}>
+              <option value="all">Все</option>
+              {services.map(function (item) {
+                return <option key={item} value={item}>{serviceMeta(item).short}</option>;
+              })}
             </select>
-          </div>
-          <div className="field-inline">
-            <label htmlFor="filter-difficulty">Сложность</label>
-            <select
-              id="filter-difficulty"
-              value={difficulty}
-              onChange={(event) => setDifficulty(event.target.value)}
-            >
+          </label>
+          <label className="field">
+            <span>Сложность</span>
+            <select value={difficulty} onChange={function (event) { setDifficulty(event.target.value); }}>
               <option value="all">Любая</option>
-              {difficulties.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
+              <option value="easy">easy</option>
+              <option value="medium">medium</option>
+              <option value="hard">hard</option>
             </select>
-          </div>
-          <div className="field-inline">
-            <span className="field-label">Статус</span>
-            <div className="segmented" role="group" aria-label="Фильтр по статусу">
-              {STATUS_FILTERS.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  className={status === item.value ? "is-active" : ""}
-                  aria-pressed={status === item.value}
-                  onClick={() => setStatus(item.value)}
-                >
-                  {item.label}
-                </button>
-              ))}
+          </label>
+          <div className="field">
+            <span>Статус</span>
+            <div className="segmented">
+              {STATUS.map(function (item) {
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={status === item.value ? "is-active" : ""}
+                    onClick={function () { setStatus(item.value); }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          {filtersActive ? (
-            <button className="button button--quiet button--small" type="button" onClick={resetFilters}>
-              Сбросить
-            </button>
-          ) : null}
+          <button className="btn btn--ghost btn--sm" type="button" onClick={reset}>
+            Сбросить
+          </button>
         </div>
 
-        <div className="board">
-          {grouped.map((group) => {
-            const groupSolved = group.items.filter((item) => item.is_solved).length;
-            const groupScore = group.items
-              .filter((item) => item.is_solved)
-              .reduce((sum, item) => sum + pointsFor(item), 0);
-            const groupMax = group.items.reduce((sum, item) => sum + pointsFor(item), 0);
+        <div className="panel__body">
+          {grouped.map(function (group) {
+            const meta = serviceMeta(group.name);
+            const groupSolved = group.items.filter(function (item) { return item.is_solved; }).length;
+            const groupPercent = group.items.length ? (groupSolved / group.items.length) * 100 : 0;
+            const groupXp = group.items.reduce(function (sum, item) {
+              return sum + (item.is_solved ? pointsFor(item) : 0);
+            }, 0);
+            const groupMax = group.items.reduce(function (sum, item) {
+              return sum + pointsFor(item);
+            }, 0);
             return (
-              <section className="service-section" key={group.name}>
-                <header className="service-section__head">
-                  <span className="service-section__mark">{serviceCode(group.name)}</span>
-                  <div className="service-section__title">
-                    <h2>{group.name}</h2>
-                    <span>
-                      {groupSolved}/{group.items.length} missions
-                    </span>
+              <section className="section" key={group.name}>
+                <header className="section__head">
+                  <span className="section__mark">{meta.short.slice(0, 3).toUpperCase()}</span>
+                  <div className="section__title">
+                    <h2>{meta.title}</h2>
+                    <span>{meta.text}</span>
                   </div>
-                  <span className="service-section__bar">
-                    <span
-                      style={{
-                        width: `${group.items.length ? (groupSolved / group.items.length) * 100 : 0}%`,
-                      }}
-                    />
+                  <span className="section__bar">
+                    <span className="progress progress--sm" style={{ display: "block" }}>
+                      <span className="progress__fill" style={{ display: "block", width: groupPercent + "%" }} />
+                    </span>
                   </span>
-                  <span className="service-section__xp">
-                    {groupScore}/{groupMax} XP
+                  <span className="section__xp">
+                    {groupSolved}/{group.items.length} · {groupXp}/{groupMax} XP
                   </span>
                 </header>
-                <div className="mission-grid">
-                  {group.items.map((challenge) => (
-                    <ChallengeCard key={challenge.slug} challenge={challenge} showService={false} />
-                  ))}
+                <div className="card-grid">
+                  {group.items.map(function (challenge) {
+                    return <ChallengeCard key={challenge.slug} challenge={challenge} showService={false} />;
+                  })}
                 </div>
               </section>
             );
           })}
+
           {!filtered.length ? (
-            <div className="empty-state">
-              <p>Под текущие фильтры ничего не подходит.</p>
-              <button className="button button--quiet button--small" type="button" onClick={resetFilters}>
+            <div className="empty">
+              <p>Под эти условия ничего не подходит.</p>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={reset} style={{ marginTop: 12 }}>
                 Сбросить фильтры
               </button>
             </div>

@@ -56,6 +56,11 @@ type redeemRequest struct {
 	Amount int64 `json:"amount"`
 }
 
+type checkoutRequest struct {
+	ProductID int64 `json:"productId"`
+	Quantity  int   `json:"quantity"`
+}
+
 func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -339,6 +344,91 @@ func (a *app) redeem(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
+func (a *app) cartCheckout(w http.ResponseWriter, r *http.Request) {
+	user := a.userID(r)
+	var body checkoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+
+	var price int64
+	err := a.pool.QueryRow(
+		r.Context(),
+		"SELECT price FROM inventory.products WHERE id = $1",
+		body.ProductID,
+	).Scan(&price)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "product not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "query failed"})
+		return
+	}
+
+	total := price * int64(body.Quantity)
+
+	var balance int64
+	err = a.pool.QueryRow(
+		r.Context(),
+		"SELECT balance FROM inventory.wallets WHERE user_id = $1::uuid",
+		user,
+	).Scan(&balance)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "wallet not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "query failed"})
+		return
+	}
+	if total > balance {
+		writeJSON(w, http.StatusPaymentRequired, map[string]string{"error": "insufficient funds"})
+		return
+	}
+
+	notes := "cart checkout"
+	if total < 0 {
+		notes = "negative quantity"
+	}
+
+	var orderID int64
+	err = a.pool.QueryRow(
+		r.Context(),
+		"INSERT INTO inventory.orders (user_id, total, status, address, notes)"+
+			" VALUES ($1::uuid, $2, 'paid', '', $3) RETURNING id",
+		user,
+		total,
+		notes,
+	).Scan(&orderID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "order failed"})
+		return
+	}
+
+	err = a.pool.QueryRow(
+		r.Context(),
+		"UPDATE inventory.wallets SET balance = balance - $1 WHERE user_id = $2::uuid RETURNING balance",
+		total,
+		user,
+	).Scan(&balance)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "update failed"})
+		return
+	}
+
+	response := map[string]interface{}{
+		"orderId": orderID,
+		"total":   total,
+		"balance": balance,
+	}
+	if total < 0 {
+		response["flag"] = a.flagFor(r.Context(), "inventory-negative-quantity", "MV{NEGATIVE_QUANTITY_CREDIT}")
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
 func (a *app) readFile(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -399,6 +489,7 @@ func main() {
 	mux.HandleFunc("GET /api/inventory/orders", instance.withUser(instance.listOrders))
 	mux.HandleFunc("GET /api/inventory/orders/{id}", instance.withUser(instance.orderDetail))
 	mux.HandleFunc("POST /api/inventory/redeem", instance.withUser(instance.redeem))
+	mux.HandleFunc("POST /api/inventory/cart/checkout", instance.withUser(instance.cartCheckout))
 	mux.HandleFunc("GET /api/inventory/files", instance.readFile)
 
 	port := os.Getenv("PORT")

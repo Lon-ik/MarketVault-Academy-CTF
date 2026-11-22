@@ -64,11 +64,11 @@
 
 ## Модель прогресса
 
-`academy.challenges` — статический каталог 30 сценариев. Поля:
+`academy.challenges` — статический каталог 32 сценариев. Поля:
 
 - `slug` — стабильный идентификатор для фронтенда и API;
 - `hint_1`, `hint_2` — последовательные подсказки;
-- `solution_payload` — точный эксплойт для модалки Solution;
+- `solution_payload` — точный эксплойт для вкладки «Разбор»;
 - `vulnerable_code` / `secure_code` — фрагменты для подсветки;
 - `flag` — эталонное значение, которое проверяет сервис;
 - `service`, `category`, `difficulty`, `order_index` — фильтры и сортировка.
@@ -88,9 +88,9 @@
 1. React загружает каталог через `GET /api/academy/challenges`.
 2. Для каждой карточки приходит состояние пользователя из
    `academy.user_progress` (по JWT из auth-service).
-3. Кнопка «I'm Stuck» вызывает `GET /api/academy/challenges/:slug/hints` и
-   увеличивает `hints_used`.
-4. «Reveal Solution» вызывает `POST /api/academy/challenges/:slug/reveal`,
+3. Кнопка «Подсказки и разбор» вызывает `GET /api/academy/challenges/:slug/hints`
+   и увеличивает `hints_used`.
+4. Вкладка «Показать разбор» вызывает `POST /api/academy/challenges/:slug/reveal`,
    выставляет `solution_revealed` и возвращает `solution_payload`,
    `vulnerable_code`, `secure_code`.
 5. Сервис-цель при успешной эксплуатации отправляет флаг на
@@ -104,7 +104,7 @@
 
 | Этап | Содержимое | Статус |
 |------|------------|--------|
-| 1 | compose, сети, PostgreSQL-схемы, каталог 30 челленджей, прогресс | готово |
+| 1 | compose, сети, PostgreSQL-схемы, каталог 32 челленджей, прогресс | готово |
 | 2 | auth-service и api-gateway, JWT, Academy API | готово |
 | 3 | legacy-service, inventory-service, stats-service, MongoDB/Redis | готово |
 | 4 | интеграционные тесты, изоляция, контракты, randomized flags | готово |

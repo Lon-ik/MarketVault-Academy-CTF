@@ -3,53 +3,62 @@ import { useEffect, useState } from "react";
 export default function FlagToast() {
   const [flags, setFlags] = useState([]);
 
-  useEffect(() => {
+  useEffect(function () {
     function handler(event) {
       const flag = event.detail;
       if (!flag) return;
-      setFlags((previous) => (previous.includes(flag) ? previous : [...previous, flag].slice(-3)));
+      setFlags(function (previous) {
+        return previous.indexOf(flag) === -1 ? previous.concat([flag]).slice(-3) : previous;
+      });
     }
     window.addEventListener("mv:flag", handler);
-    return () => window.removeEventListener("mv:flag", handler);
+    return function () {
+      window.removeEventListener("mv:flag", handler);
+    };
   }, []);
 
-  useEffect(() => {
-    if (!flags.length) return undefined;
-    const timers = flags.map((flag) =>
-      window.setTimeout(() => {
-        setFlags((previous) => previous.filter((item) => item !== flag));
-      }, 20000)
-    );
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [flags]);
+  useEffect(
+    function () {
+      if (!flags.length) return undefined;
+      const timers = flags.map(function (flag) {
+        return window.setTimeout(function () {
+          setFlags(function (previous) {
+            return previous.filter(function (item) {
+              return item !== flag;
+            });
+          });
+        }, 25000);
+      });
+      return function () {
+        timers.forEach(function (timer) {
+          window.clearTimeout(timer);
+        });
+      };
+    },
+    [flags]
+  );
 
   if (!flags.length) return null;
 
-  async function copy(flag) {
-    try {
-      await navigator.clipboard.writeText(flag);
-    } catch (error) {
-      /* clipboard is optional */
-    }
+  function copy(flag) {
+    if (navigator.clipboard) navigator.clipboard.writeText(flag).catch(function () {});
   }
 
   return (
-    <div className="flag-toast" role="status" aria-live="polite">
-      {flags.map((flag) => (
-        <div className="flag-toast__item" key={flag}>
-          <div className="flag-toast__meta">
-            <span className="flag-toast__label">flag received</span>
-            <button
-              className="button button--quiet button--small"
-              type="button"
-              onClick={() => copy(flag)}
-            >
-              копировать
-            </button>
+    <div className="toasts" role="status" aria-live="polite">
+      {flags.map(function (flag) {
+        return (
+          <div className="toast" key={flag}>
+            <div className="toast__row">
+              <span className="toast__label">Флаг получен</span>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={function () { copy(flag); }}>
+                Копировать
+              </button>
+            </div>
+            <code>{flag}</code>
           </div>
-          <code>{flag}</code>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

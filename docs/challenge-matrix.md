@@ -32,15 +32,17 @@
 | 28 | postmessage-xss | frontend | XSS | medium |
 | 29 | session-fixation | auth-service | Session Fixation | hard |
 | 30 | cache-poisoning | api-gateway | Cache Poisoning | hard |
+| 31 | jwt-kid-injection | auth-service | JWT | hard |
+| 32 | inventory-negative-quantity | inventory-service | Business Logic | medium |
 
 ## Распределение
 
-| Сервис | Чеllенджей |
+| Сервис | Заданий |
 |--------|-----------|
-| auth-service | 8 |
+| auth-service | 9 |
 | api-gateway | 9 |
 | legacy-service | 6 |
-| inventory-service | 3 |
+| inventory-service | 4 |
 | frontend | 4 |
 
 ## Сложность
@@ -48,5 +50,5 @@
 | Уровень | Количество |
 |---------|-----------|
 | easy | 12 |
-| medium | 10 |
+| medium | 12 |
 | hard | 8 |

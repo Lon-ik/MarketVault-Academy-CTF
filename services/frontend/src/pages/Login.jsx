@@ -8,116 +8,112 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
+  if (user) return <Navigate to="/" replace />;
 
   async function submit(event) {
     event.preventDefault();
     setError("");
-    setLoading(true);
+    setBusy(true);
     try {
       await login(username, password);
       navigate("/");
     } catch (err) {
-      setError(err.message === "invalid credentials" ? "Неверный логин или пароль" : err.message);
+      setError(err.message === "invalid credentials" ? "Неверный логин или пароль." : err.message);
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
-  function useDemo(name, pass) {
+  function fill(name, pass) {
     setUsername(name);
     setPassword(pass);
   }
 
   return (
-    <div className="auth-layout">
-      <section className="auth-intro">
-        <div className="auth-brand">
-          <span className="brand-mark">MV</span>
-          <span className="brand-text">
-            <strong>MarketVault</strong>
-            <small>Academy</small>
-          </span>
+    <div className="auth">
+      <section className="auth__aside">
+        <div className="brand">
+          <img className="brand__lockup" src="/logo.png" alt="MarketVault Academy" />
         </div>
-        <p className="kicker">isolated security lab</p>
-        <h1>Практика по веб-безопасности в контролируемой среде.</h1>
-        <p className="auth-lead">
-          Учебная CTF-платформа с реальными сервисами, подсказками и фиксацией прогресса.
-          Все сценарии выполняются внутри изолированного стенда.
+        <h1>Тренажёр по веб-безопасности на живых сервисах</h1>
+        <p>
+          Пять приложений с намеренными уязвимостями, разбор по классам ошибок и понятная
+          методология: от разведки до исправления. Всё выполняется внутри изолированного стенда.
         </p>
-        <ul className="auth-facts">
+        <ul className="auth__facts">
           <li>
-            <strong>30</strong>
-            <span>заданий по шести сервисам</span>
+            <strong>32</strong>
+            <span>задания по пяти трекам</span>
           </li>
           <li>
-            <strong>3</strong>
-            <span>уровня сложности и подсказки</span>
+            <strong>5</strong>
+            <span>направлений обучения</span>
           </li>
           <li>
             <strong>0</strong>
-            <span>производственных данных</span>
+            <span>реальных данных</span>
           </li>
         </ul>
-        <p className="auth-status">
-          <span className="status-dot" /> environment online
+        <p className="meta-text" style={{ color: "#93a1b5" }}>
+          Учебная среда. Не подключайте рабочие данные и платёжные системы.
         </p>
       </section>
 
-      <section className="auth-card panel">
-        <div className="panel__header">
-          <div>
-            <p className="kicker">access terminal</p>
+      <section className="auth__main">
+        <div className="auth__card panel">
+          <div className="panel__head">
             <h2>Вход</h2>
           </div>
-        </div>
-        <p className="muted">Используйте учебный аккаунт или данные, выданные администратором.</p>
-        <form className="stack" onSubmit={submit}>
-          <label>
-            Логин
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              autoComplete="username"
-              autoFocus
-              required
-            />
-          </label>
-          <label>
-            Пароль
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          {error ? <p className="alert alert--error">{error}</p> : null}
-          <button className="button" type="submit" disabled={loading}>
-            {loading ? "Подключение…" : "Войти"}
-          </button>
-        </form>
+          <div className="panel__body stack">
+            <p className="muted" style={{ fontSize: 13.5 }}>
+              Используйте выданный вам аккаунт стенда.
+            </p>
+            <form className="stack" onSubmit={submit}>
+              <label className="field">
+                <span>Логин</span>
+                <input
+                  value={username}
+                  onChange={function (event) { setUsername(event.target.value); }}
+                  autoComplete="username"
+                  autoFocus
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>Пароль</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={function (event) { setPassword(event.target.value); }}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+              {error ? <p className="alert alert--error">{error}</p> : null}
+              <button className="btn btn--block" type="submit" disabled={busy}>
+                {busy ? "Проверяю…" : "Войти"}
+              </button>
+            </form>
 
-        <div className="demo-block">
-          <p className="section-label">Демо-аккаунты</p>
-          <div className="demo-row">
-            <button className="button button--quiet button--small" type="button" onClick={() => useDemo("student", "student123")}>
-              student
-            </button>
-            <button className="button button--quiet button--small" type="button" onClick={() => useDemo("admin", "admin123")}>
-              admin
-            </button>
+            <div>
+              <p className="meta-text">Демонстрационные аккаунты</p>
+              <div className="demo-row">
+                <button className="btn btn--ghost btn--sm" type="button" onClick={function () { fill("student", "student123"); }}>
+                  student / student123
+                </button>
+                <button className="btn btn--ghost btn--sm" type="button" onClick={function () { fill("admin", "admin123"); }}>
+                  admin / admin123
+                </button>
+              </div>
+            </div>
+
+            <p className="auth__switch">
+              Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+            </p>
           </div>
         </div>
-
-        <p className="auth-switch">
-          Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
-        </p>
       </section>
     </div>
   );

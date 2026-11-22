@@ -1,58 +1,42 @@
 import { Link } from "react-router-dom";
-import { pointsFor, serviceCode } from "../game";
-import Pips from "./Pips";
+import { pointsFor } from "../game";
+import { serviceMeta } from "../guidance";
+import Icon from "./Icon";
+import Stars from "./Stars";
 
 export default function ChallengeCard({ challenge, showService = true }) {
   const solved = Boolean(challenge.is_solved);
-  const points = pointsFor(challenge);
+  const meta = serviceMeta(challenge.service);
+  const text = challenge.description || "";
 
   return (
-    <article className={`mission-card ${solved ? "is-solved" : "is-open"}`}>
+    <article className={solved ? "mission-card is-solved" : "mission-card"}>
       <div className="mission-card__top">
-        <span className={`mission-state ${solved ? "is-solved" : ""}`}>
-          <span className="mission-state__dot" />
-          {solved ? "solved" : "open"}
-        </span>
-        <span className="mission-card__xp">{points} XP</span>
+        {showService ? <span className="chip chip--service">{meta.short}</span> : null}
+        <span className="chip">{challenge.category}</span>
+        {solved ? (
+          <span className="chip chip--solved" style={{ marginLeft: "auto" }}>
+            <Icon name="check" size={13} />
+            Решено
+          </span>
+        ) : null}
       </div>
 
-      <Link className="mission-card__title" to={`/challenge/${challenge.slug}`}>
+      <Link className="mission-card__title" to={"/challenge/" + challenge.slug}>
         {challenge.title}
       </Link>
 
-      <p className="mission-card__meta">
-        {showService ? (
-          <>
-            <span className="service-name">{serviceCode(challenge.service)}</span>
-            <span className="meta-sep">/</span>
-          </>
-        ) : null}
-        <span>{challenge.category}</span>
-      </p>
-
       <p className="mission-card__desc">
-        {solved
-          ? challenge.description.slice(0, 120)
-          : "Условие откроется на странице задания."}
+        {text.length > 120 ? text.slice(0, 120).trimEnd() + "…" : text}
       </p>
 
       <div className="mission-card__foot">
-        <span className="mission-card__difficulty">
-          <Pips difficulty={challenge.difficulty} />
-          <span>{challenge.difficulty}</span>
-        </span>
-        <span className="mission-card__hints">
-          {challenge.hints_used ? `${challenge.hints_used} hints` : "no hints"}
-        </span>
-        <Link
-          className="mission-card__open"
-          to={`/challenge/${challenge.slug}`}
-          aria-label={`Открыть задание ${challenge.title}`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-            <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
+        <Stars difficulty={challenge.difficulty} />
+        <span className="spacer" />
+        {challenge.hints_used ? (
+          <span title="Открыто подсказок">{challenge.hints_used} подск.</span>
+        ) : null}
+        <span className="mission-card__xp">{pointsFor(challenge)} XP</span>
       </div>
     </article>
   );

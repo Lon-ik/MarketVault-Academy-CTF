@@ -3,116 +3,40 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { request } from "../api";
 import { useAuth } from "../auth";
 import { rankFor, scoreFor } from "../game";
+import { trackProgress } from "../guidance";
+import { TRACKS } from "../learn";
+import Icon from "./Icon";
+import Instructor from "./Instructor";
 
-const icons = {
-  dashboard: (
-    <>
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </>
-  ),
-  search: (
-    <>
-      <circle cx="11" cy="11" r="6.5" />
-      <path d="m16 16 4.5 4.5" />
-    </>
-  ),
-  leaderboard: (
-    <>
-      <path d="M4 20V10" />
-      <path d="M12 20V4" />
-      <path d="M20 20v-6" />
-    </>
-  ),
-  support: (
-    <>
-      <circle cx="12" cy="12" r="8.5" />
-      <circle cx="12" cy="12" r="3.5" />
-      <path d="m6 6 3 3M18 6l-3 3M6 18l3-3M18 18l-3-3" />
-    </>
-  ),
-  checkout: (
-    <>
-      <rect x="2.5" y="5" width="19" height="14" rx="2" />
-      <path d="M2.5 9.5h19" />
-    </>
-  ),
-  profile: (
-    <>
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20c1.6-3.2 4-4.8 7-4.8s5.4 1.6 7 4.8" />
-    </>
-  ),
-  logout: (
-    <>
-      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
-      <path d="m15 8 4 4-4 4" />
-      <path d="M19 12H9" />
-    </>
-  ),
-  menu: (
-    <>
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </>
-  ),
-};
-
-function Icon({ name, size = 16 }) {
-  return (
-    <svg
-      className="icon"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {icons[name]}
-    </svg>
-  );
-}
-
-const navGroups = [
+const NAV = [
   {
-    label: "Range",
+    label: "Обучение",
     items: [
-      { to: "/", label: "Mission board", icon: "dashboard", end: true },
+      { to: "/", label: "Задания", icon: "dashboard", end: true },
+      { to: "/path", label: "Учебный план", icon: "path" },
+      { to: "/leaderboard", label: "Рейтинг", icon: "leaderboard" },
+    ],
+  },
+  {
+    label: "Стенд",
+    items: [
       { to: "/search", label: "Поиск", icon: "search" },
-      { to: "/leaderboard", label: "Scoreboard", icon: "leaderboard" },
-    ],
-  },
-  {
-    label: "Lab",
-    items: [
       { to: "/support", label: "Поддержка", icon: "support" },
-      { to: "/checkout", label: "Checkout", icon: "checkout" },
+      { to: "/checkout", label: "Оформление заказа", icon: "checkout" },
     ],
   },
   {
-    label: "Agent",
+    label: "Аккаунт",
     items: [{ to: "/profile", label: "Профиль", icon: "profile" }],
   },
 ];
 
-const routeTitles = {
-  "/": "Mission board",
-  "/search": "Поиск",
-  "/leaderboard": "Scoreboard",
-  "/support": "Поддержка",
-  "/checkout": "Checkout",
-  "/profile": "Профиль",
-};
-
-function currentTitle(pathname) {
-  if (pathname.startsWith("/challenge/")) return "Mission briefing";
-  return routeTitles[pathname] || "MarketVault";
-}
+const TOP_NAV = [
+  { to: "/", label: "Задания", end: true },
+  { to: "/path", label: "Учебный план" },
+  { to: "/leaderboard", label: "Рейтинг" },
+  { to: "/search", label: "Поиск" },
+];
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -121,170 +45,207 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hud, setHud] = useState(null);
 
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
+  useEffect(
+    function () {
+      setMenuOpen(false);
+    },
+    [location.pathname]
+  );
 
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    function onKey(event) {
-      if (event.key === "Escape") setMenuOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen]);
-
-  useEffect(() => {
-    let active = true;
-    function load() {
-      Promise.all([request("/api/academy/challenges"), request("/api/academy/progress")])
-        .then(([catalog, progress]) => {
-          if (!active) return;
-          setHud({
-            score: scoreFor(catalog.challenges),
-            solved: progress.solved,
-            total: progress.total,
-            rank: rankFor(progress.solved),
-          });
-        })
-        .catch(() => {});
-    }
-    load();
-    const handler = () => load();
-    window.addEventListener("mv:progress-changed", handler);
-    return () => {
-      active = false;
-      window.removeEventListener("mv:progress-changed", handler);
-    };
-  }, []);
+  useEffect(
+    function () {
+      let active = true;
+      function load() {
+        Promise.all([request("/api/academy/challenges"), request("/api/academy/progress")])
+          .then(function (data) {
+            if (!active) return;
+            setHud({
+              challenges: data[0].challenges,
+              score: scoreFor(data[0].challenges),
+              solved: data[1].solved,
+              total: data[1].total,
+              rank: rankFor(data[1].solved),
+            });
+          })
+          .catch(function () {});
+      }
+      load();
+      const handler = function () { load(); };
+      window.addEventListener("mv:progress-changed", handler);
+      return function () {
+        active = false;
+        window.removeEventListener("mv:progress-changed", handler);
+      };
+    },
+    []
+  );
 
   function handleLogout() {
     logout();
     navigate("/login");
   }
 
-  const initials = (user?.username || "mv").slice(0, 2).toUpperCase();
+  const initials = String((user && user.username) || "mv").slice(0, 2).toUpperCase();
+  const percent = hud && hud.total ? (hud.solved / hud.total) * 100 : 0;
 
   return (
-    <div className={menuOpen ? "app-shell app-shell--menu" : "app-shell"}>
-      <aside className="sidebar" aria-label="Основная навигация">
-        <div className="sidebar__brand">
-          <span className="brand-mark">MV</span>
-          <span className="brand-text">
-            <strong>MarketVault</strong>
-            <small>Academy // Range</small>
-          </span>
-        </div>
+    <div className={menuOpen ? "shell shell--menu" : "shell"}>
+      <header className="topbar">
+        <div className="topbar__inner">
+          <button
+            className="topbar__burger"
+            type="button"
+            aria-label="Меню"
+            aria-expanded={menuOpen}
+            onClick={function () { setMenuOpen(!menuOpen); }}
+          >
+            <Icon name="menu" size={18} />
+          </button>
 
-        <nav className="sidebar__nav">
-          {navGroups.map((group) => (
-            <div key={group.label} className="nav-group">
-              <p className="nav-label">{group.label}</p>
-              {group.items.map((item) => (
+          <NavLink className="brand" to="/">
+            <img className="brand__mark" src="/mark.png" alt="MarketVault Academy" width="30" height="30" />
+            <span className="brand__text">
+              <strong>MarketVault</strong>
+              <small>Security Academy</small>
+            </span>
+          </NavLink>
+
+          <nav className="topbar__nav" aria-label="Основная навигация">
+            {TOP_NAV.map(function (item) {
+              return (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.end}
-                  className={({ isActive }) => (isActive ? "nav-item is-active" : "nav-item")}
+                  className={function (state) {
+                    return state.isActive ? "topnav-link is-active" : "topnav-link";
+                  }}
                 >
-                  <Icon name={item.icon} />
-                  <span>{item.label}</span>
+                  {item.label}
                 </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
+              );
+            })}
+          </nav>
 
-        {hud ? (
-          <div className="agent-card">
-            <div className="agent-card__head">
-              <span className="agent-card__label">agent status</span>
-              <span className="agent-card__rank">{hud.rank.name}</span>
-            </div>
-            <div className="agent-card__score">
-              <strong>{hud.score}</strong>
-              <span>XP</span>
-            </div>
-            <div className="progress-track progress-track--xs">
-              <div
-                className="progress-track__fill"
-                style={{ width: `${hud.total ? (hud.solved / hud.total) * 100 : 0}%` }}
-              />
-            </div>
-            <div className="agent-card__meta">
-              <span>
-                {hud.solved}/{hud.total} missions
-              </span>
-              <span>{hud.rank.next ? `next: ${hud.rank.next}` : "max rank"}</span>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="sidebar__footer">
-          <div className="sidebar__session">
-            <span className="avatar">{initials}</span>
-            <span className="sidebar__identity">
-              <strong>{user?.username}</strong>
-              <small>{user?.role}</small>
-            </span>
-            <span className="status-dot" title="Сессия активна" />
-          </div>
-          <button className="sidebar__logout" type="button" onClick={handleLogout}>
-            <Icon name="logout" />
-            <span>Выйти</span>
-          </button>
-        </div>
-      </aside>
-
-      {menuOpen ? (
-        <button
-          className="sidebar-backdrop"
-          type="button"
-          aria-label="Закрыть навигацию"
-          onClick={() => setMenuOpen(false)}
-        />
-      ) : null}
-
-      <div className="app-main">
-        <header className="topbar">
-          <button
-            className="menu-button"
-            type="button"
-            aria-label="Открыть навигацию"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((value) => !value)}
-          >
-            <Icon name="menu" size={18} />
-          </button>
-          <div className="topbar__crumb">
-            <span className="topbar__root">MarketVault Range</span>
-            <span className="topbar__sep">/</span>
-            <span className="topbar__current">{currentTitle(location.pathname)}</span>
-          </div>
           <div className="topbar__right">
             {hud ? (
-              <span className="hud-chip" title="Текущий счёт">
-                <span>XP</span>
+              <span className="xp-chip" title="Очки за решённые задания">
                 <strong>{hud.score}</strong>
+                <span>XP</span>
               </span>
             ) : null}
-            <span className="env-badge">
-              <span className="status-dot" />
-              isolated
-            </span>
+            {hud ? <span className="rank-chip">{hud.rank.name}</span> : null}
+            <NavLink className="user-chip" to="/profile">
+              <span className="user-chip__avatar">{initials}</span>
+              <span>
+                {user && user.username}
+                <br />
+                <small>{user && user.role}</small>
+              </span>
+            </NavLink>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="content">
+      <div className="shell__body">
+        {menuOpen ? (
+          <button
+            className="sidebar-backdrop"
+            type="button"
+            aria-label="Закрыть меню"
+            onClick={function () { setMenuOpen(false); }}
+          />
+        ) : null}
+
+        <aside className="sidebar">
+          {NAV.map(function (group) {
+            return (
+              <div className="sidebar__group" key={group.label}>
+                <p className="sidebar__label">{group.label}</p>
+                {group.items.map(function (item) {
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      className={function (state) {
+                        return state.isActive ? "side-link is-active" : "side-link";
+                      }}
+                    >
+                      <Icon name={item.icon} className="side-link__icon" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {hud ? (
+            <div className="sidebar__group">
+              <p className="sidebar__label">Учебные треки</p>
+              {TRACKS.map(function (track) {
+                const info = trackProgress(track, hud.challenges);
+                const done = info.total > 0 && info.solved === info.total;
+                return (
+                  <NavLink
+                    key={track.id}
+                    to={"/track/" + track.id}
+                    className="side-link"
+                  >
+                    <Icon
+                      name={done ? "check" : "target"}
+                      className="side-link__icon"
+                      size={15}
+                    />
+                    <span>{track.title}</span>
+                    <span className="side-link__count">
+                      {info.solved}/{info.total}
+                    </span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {hud ? (
+            <div className="sidebar__agent">
+              <div className="agent-card__row">
+                <span>Прогресс</span>
+                <span>{hud.total ? Math.round(percent) : 0}%</span>
+              </div>
+              <div className="progress progress--sm" style={{ marginTop: 8 }}>
+                <div className="progress__fill" style={{ width: percent + "%" }} />
+              </div>
+              <div className="agent-card__meta">
+                <span>
+                  {hud.solved} из {hud.total}
+                </span>
+                <span>{hud.rank.next ? "до " + hud.rank.next + ": " + hud.rank.toNext : "максимум"}</span>
+              </div>
+            </div>
+          ) : null}
+
+          <button className="side-link" type="button" onClick={handleLogout} style={{ marginTop: 16, width: "100%" }}>
+            <Icon name="logout" className="side-link__icon" />
+            <span>Выйти</span>
+          </button>
+        </aside>
+
+        <main className="main">
           <Outlet />
         </main>
-
-        <footer className="site-footer">
-          <span>MarketVault Academy</span>
-          <span className="site-footer__sep">/</span>
-          <span>cyber range // isolated</span>
-        </footer>
       </div>
+
+      <Instructor challenges={hud ? hud.challenges : []} />
+
+      <footer className="site-footer">
+        <span>MarketVault Academy</span>
+        <span>·</span>
+        <span>учебный стенд с намеренными уязвимостями</span>
+        <span>·</span>
+        <span>не подключайте реальные данные</span>
+      </footer>
     </div>
   );
 }

@@ -66,13 +66,29 @@ def issue_token(user_id, username, role):
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def decode_token(token):
+async def decode_token(token):
     header = jwt.get_unverified_header(token)
     algorithm = (header.get("alg") or "").lower()
     if algorithm == "none":
-        return jwt.decode(token, options={"verify_signature": False}), algorithm
+        return (
+            jwt.decode(token, options={"verify_signature": False}),
+            algorithm,
+            "none",
+        )
+    kid = header.get("kid")
+    if kid:
+        try:
+            row = await fetchrow(
+                f"SELECT key_value FROM auth.jwt_keys WHERE kid = '{kid}'"
+            )
+        except Exception:
+            raise jwt.InvalidTokenError("invalid key id") from None
+        if row is None:
+            raise jwt.InvalidTokenError("unknown key id")
+        payload = jwt.decode(token, row["key_value"], algorithms=["HS256"])
+        return payload, algorithm, f"kid:{kid}"
     payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    return payload, algorithm
+    return payload, algorithm, "default"
 
 
 def serialize_user(row):
@@ -99,7 +115,7 @@ async def current_context(authorization: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="missing bearer token")
     token = authorization.split(" ", 1)[1]
     try:
-        payload, algorithm = decode_token(token)
+        payload, algorithm, key_source = await decode_token(token)
         user_id = uuid.UUID(str(payload.get("sub")))
     except (jwt.PyJWTError, ValueError):
         raise HTTPException(status_code=401, detail="invalid token")
@@ -108,7 +124,12 @@ async def current_context(authorization: str | None = Header(default=None)):
     )
     if user is None:
         raise HTTPException(status_code=401, detail="unknown user")
-    return {"payload": payload, "user": user, "algorithm": algorithm}
+    return {
+        "payload": payload,
+        "user": user,
+        "algorithm": algorithm,
+        "key_source": key_source,
+    }
 
 
 @asynccontextmanager
@@ -278,6 +299,11 @@ async def me(context: dict = Depends(current_context)):
     if claimed_role == "admin" and user["role"] != "admin":
         if context["algorithm"] == "none":
             flag = await get_flag("jwt-alg-none", "MV{JWT_ALG_NONE_2026}")
+        elif (
+            context["key_source"].startswith("kid:")
+            and context["key_source"] != "kid:default"
+        ):
+            flag = await get_flag("jwt-kid-injection", "MV{JWT_KID_INJECTION_2026}")
         else:
             flag = await get_flag("jwt-weak-secret", "MV{JWT_WEAK_SECRET_2026}")
     return {"user": serialize_user(user), "token": payload, "flag": flag}

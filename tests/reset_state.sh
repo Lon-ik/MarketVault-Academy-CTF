@@ -35,7 +35,8 @@ UPDATE inventory.wallets
 SET balance = 10000
 WHERE user_id = '11111111-1111-1111-1111-111111111111';
 
-DELETE FROM inventory.orders WHERE notes = 'redeem';
+DELETE FROM inventory.orders
+WHERE notes IN ('redeem', 'cart checkout', 'negative quantity');
 SQL
 
 for db in 0 1 2 3; do
