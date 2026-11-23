@@ -12,12 +12,17 @@ API и GraphQL, устаревший PHP-портал, склад на Go, от�
 
 ## Скрины
 
-Место под скриншоты. Положите файлы в `docs/screenshots/` и вставьте их сюда, например:
+<img width="1879" height="2726" alt="Screenshot 2026-11-23 at 19-18-22 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/b60952c0-e934-43c1-9da2-351181782a8d" />
 
-```markdown
-![Витрина](docs/screenshots/shop.png)
-![Карточка товара](docs/screenshots/product.png)
-```
+<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-30 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/1389eb28-d506-48df-85e0-acb069b8635a" />
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-41 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/869527b8-8262-43cb-acbe-bb7917bcd3e8" />
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-48 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/48a90cd9-50b5-4284-a79e-8d4199f14c04" />
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-19-03 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/764d5161-e238-4d15-9331-e75f66fcfdfb" />
+
+<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-19-09 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/6bcaecb4-6575-4c57-899b-cc08216b0fd0" />
 
 ## Что внутри
 
