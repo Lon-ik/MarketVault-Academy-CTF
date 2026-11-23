@@ -185,6 +185,10 @@ services:
       JWT_SECRET: "${JWT_SECRET:-weak-jwt-secret}"
       SESSION_SECRET: "${SESSION_SECRET:-weak-session-secret}"
       CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000}"
+      SUPPORT_LLM_URL: "${SUPPORT_LLM_URL:-}"
+      SUPPORT_LLM_MODEL: "${SUPPORT_LLM_MODEL:-}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "4000:4000"
     depends_on:

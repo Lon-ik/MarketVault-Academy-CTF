@@ -42,6 +42,14 @@ const PATHS = {
       <circle cx="17.5" cy="19.5" r="1.4" />
     </>
   ),
+  cart: (
+    <>
+      <path d="M3 4h2.4l2.2 11.5h10.6" />
+      <path d="M6.2 7.5h13.3l-1.7 6.2H7.5" />
+      <circle cx="9.5" cy="19.6" r="1.5" />
+      <circle cx="17" cy="19.6" r="1.5" />
+    </>
+  ),
   profile: (
     <>
       <circle cx="12" cy="8" r="3.6" />
@@ -95,6 +103,46 @@ const PATHS = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
+  scoreboard: (
+    <>
+      <path d="M7 4h10v4a5 5 0 0 1-10 0z" />
+      <path d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10" />
+      <path d="M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10" />
+      <path d="M12 13v4M9 20h6" />
+    </>
+  ),
+  thumbUp: (
+    <>
+      <path d="M7 20h9.2a3 3 0 0 0 2.9-2.3l1-4.4A2 2 0 0 0 18.2 11H14l.6-3.2A2.2 2.2 0 0 0 12.4 5L7 11z" />
+      <path d="M7 11v9H4.5V11z" />
+    </>
+  ),
+  thumbDown: (
+    <>
+      <path d="M7 4h9.2a3 3 0 0 1 2.9 2.3l1 4.4A2 2 0 0 1 18.2 13H14l.6 3.2A2.2 2.2 0 0 1 12.4 19L7 13z" />
+      <path d="M7 13V4H4.5v9z" />
+    </>
+  ),
+  wallet: (
+    <>
+      <rect x="3" y="6" width="18" height="13" rx="2.5" />
+      <path d="M3 10.5h18" />
+      <circle cx="16.5" cy="14.8" r="1.2" />
+    </>
+  ),
+  box: (
+    <>
+      <path d="m12 3 8 4.2v9.6L12 21l-8-4.2V7.2z" />
+      <path d="M4 7.2 12 11l8-3.8M12 11v10" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />,
 };
 
 export default function Icon({ name, size = 17, className }) {

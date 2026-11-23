@@ -18,6 +18,8 @@ const landingRouter = require("./routes/landing");
 const { router: profileRouter } = require("./routes/profile");
 const adminRouter = require("./routes/admin");
 const frontendRouter = require("./routes/frontend");
+const shopRouter = require("./routes/shop");
+const supportRouter = require("./routes/support");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -79,6 +81,8 @@ async function main() {
   app.use("/api/profile", profileRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api", frontendRouter);
+  app.use("/api", shopRouter);
+  app.use("/api", supportRouter);
 
   app.post("/api/session/login", async (req, res) => {
     try {

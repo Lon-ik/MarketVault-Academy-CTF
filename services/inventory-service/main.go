@@ -21,6 +21,7 @@ import (
 type contextKey string
 
 const userContextKey contextKey = "user"
+const roleContextKey contextKey = "role"
 
 type app struct {
 	pool   *pgxpool.Pool
@@ -72,6 +73,11 @@ func (a *app) userID(r *http.Request) string {
 	return value
 }
 
+func (a *app) userRole(r *http.Request) string {
+	value, _ := r.Context().Value(roleContextKey).(string)
+	return value
+}
+
 func (a *app) withUser(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
@@ -100,7 +106,10 @@ func (a *app) withUser(next http.HandlerFunc) http.HandlerFunc {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid subject"})
 			return
 		}
-		next(w, r.WithContext(context.WithValue(r.Context(), userContextKey, subject)))
+		role, _ := claims["role"].(string)
+		ctx := context.WithValue(r.Context(), userContextKey, subject)
+		ctx = context.WithValue(ctx, roleContextKey, role)
+		next(w, r.WithContext(ctx))
 	}
 }
 
@@ -192,6 +201,10 @@ func (a *app) wallet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) topup(w http.ResponseWriter, r *http.Request) {
+	if a.userRole(r) != "admin" {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only admin can top up"})
+		return
+	}
 	user := a.userID(r)
 	var body redeemRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Amount <= 0 {

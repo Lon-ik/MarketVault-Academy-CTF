@@ -36,7 +36,12 @@ SET balance = 10000
 WHERE user_id = '11111111-1111-1111-1111-111111111111';
 
 DELETE FROM inventory.orders
-WHERE notes IN ('redeem', 'cart checkout', 'negative quantity');
+WHERE notes IN ('redeem', 'cart checkout', 'negative quantity', 'web checkout');
+
+DELETE FROM inventory.cart_items;
+DELETE FROM inventory.promo_redemptions;
+UPDATE inventory.promo_codes SET used_count = 0;
+UPDATE inventory.products SET stock = 1 WHERE id = 9;
 SQL
 
 for db in 0 1 2 3; do

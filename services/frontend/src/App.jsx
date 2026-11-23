@@ -9,9 +9,11 @@ import LeaderboardPage from "./pages/Leaderboard";
 import LoginPage from "./pages/Login";
 import NotFoundPage from "./pages/NotFound";
 import PathPage from "./pages/Path";
+import ProductDetailsPage from "./pages/ProductDetails";
 import ProfilePage from "./pages/Profile";
 import RegisterPage from "./pages/Register";
 import SearchPage from "./pages/Search";
+import ShopPage from "./pages/Shop";
 import SupportPage from "./pages/Support";
 import TrackPage from "./pages/Track";
 
@@ -39,7 +41,10 @@ export default function App() {
             </Protected>
           }
         >
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<ShopPage />} />
+          <Route path="/product/:id" element={<ProductDetailsPage />} />
+          <Route path="/cart" element={<Navigate to="/checkout" replace />} />
+          <Route path="/challenges" element={<DashboardPage />} />
           <Route path="/path" element={<PathPage />} />
           <Route path="/track/:id" element={<TrackPage />} />
           <Route path="/challenge/:slug" element={<ChallengePage />} />

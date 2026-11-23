@@ -2,40 +2,36 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { request } from "../api";
 import { useAuth } from "../auth";
+import { countItems, loadCart, onCartChange } from "../cart";
 import { rankFor, scoreFor } from "../game";
-import { trackProgress } from "../guidance";
-import { TRACKS } from "../learn";
+import { toggleTheme } from "../theme";
+import ChallengesDrawer from "./ChallengesDrawer";
 import Icon from "./Icon";
 import Instructor from "./Instructor";
 
 const NAV = [
   {
-    label: "Обучение",
+    label: "Магазин",
     items: [
-      { to: "/", label: "Задания", icon: "dashboard", end: true },
-      { to: "/path", label: "Учебный план", icon: "path" },
-      { to: "/leaderboard", label: "Рейтинг", icon: "leaderboard" },
-    ],
-  },
-  {
-    label: "Стенд",
-    items: [
+      { to: "/", label: "Витрина", icon: "box", end: true },
       { to: "/search", label: "Поиск", icon: "search" },
+      { to: "/checkout", label: "Корзина и оплата", icon: "cart", badge: true },
       { to: "/support", label: "Поддержка", icon: "support" },
-      { to: "/checkout", label: "Оформление заказа", icon: "checkout" },
     ],
   },
   {
     label: "Аккаунт",
-    items: [{ to: "/profile", label: "Профиль", icon: "profile" }],
+    items: [
+      { to: "/profile", label: "Профиль и кошелёк", icon: "profile" },
+    ],
   },
 ];
 
 const TOP_NAV = [
-  { to: "/", label: "Задания", end: true },
-  { to: "/path", label: "Учебный план" },
-  { to: "/leaderboard", label: "Рейтинг" },
+  { to: "/", label: "Витрина", end: true },
   { to: "/search", label: "Поиск" },
+  { to: "/support", label: "Поддержка" },
+  { to: "/checkout", label: "Корзина" },
 ];
 
 export default function Layout() {
@@ -43,7 +39,12 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [hud, setHud] = useState(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [theme, setTheme] = useState(function () {
+    return document.documentElement.dataset.theme || "light";
+  });
 
   useEffect(
     function () {
@@ -80,6 +81,23 @@ export default function Layout() {
     []
   );
 
+  useEffect(function () {
+    let active = true;
+    function refresh() {
+      loadCart()
+        .then(function (cart) {
+          if (active) setCartCount(countItems(cart));
+        })
+        .catch(function () {});
+    }
+    refresh();
+    const unsubscribe = onCartChange(refresh);
+    return function () {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
   function handleLogout() {
     logout();
     navigate("/login");
@@ -106,7 +124,7 @@ export default function Layout() {
             <img className="brand__mark" src="/mark.png" alt="MarketVault Academy" width="30" height="30" />
             <span className="brand__text">
               <strong>MarketVault</strong>
-              <small>Security Academy</small>
+              <small>Store</small>
             </span>
           </NavLink>
 
@@ -128,6 +146,32 @@ export default function Layout() {
           </nav>
 
           <div className="topbar__right">
+            <button
+              className="topbar-icon"
+              type="button"
+              onClick={function () { setTheme(toggleTheme(theme)); }}
+              aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
+              title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            >
+              <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
+            </button>
+
+            <button
+              className="topbar-icon"
+              type="button"
+              onClick={function () { setDrawerOpen(true); }}
+              aria-label="Прогресс и задания"
+              title={"Прогресс: " + (hud ? hud.solved + " из " + hud.total : "—")}
+            >
+              <Icon name="scoreboard" size={18} />
+              {hud && hud.solved ? <span className="topbar-icon__badge">{hud.solved}</span> : null}
+            </button>
+
+            <NavLink className="topbar-icon" to="/checkout" aria-label="Корзина" title="Корзина и оплата">
+              <Icon name="cart" size={18} />
+              {cartCount ? <span className="topbar-icon__badge">{cartCount}</span> : null}
+            </NavLink>
+
             {hud ? (
               <span className="xp-chip" title="Очки за решённые задания">
                 <strong>{hud.score}</strong>
@@ -135,6 +179,7 @@ export default function Layout() {
               </span>
             ) : null}
             {hud ? <span className="rank-chip">{hud.rank.name}</span> : null}
+
             <NavLink className="user-chip" to="/profile">
               <span className="user-chip__avatar">{initials}</span>
               <span>
@@ -174,6 +219,9 @@ export default function Layout() {
                     >
                       <Icon name={item.icon} className="side-link__icon" />
                       <span>{item.label}</span>
+                      {item.badge && cartCount ? (
+                        <span className="side-link__count">{cartCount}</span>
+                      ) : null}
                     </NavLink>
                   );
                 })}
@@ -181,32 +229,14 @@ export default function Layout() {
             );
           })}
 
-          {hud ? (
-            <div className="sidebar__group">
-              <p className="sidebar__label">Учебные треки</p>
-              {TRACKS.map(function (track) {
-                const info = trackProgress(track, hud.challenges);
-                const done = info.total > 0 && info.solved === info.total;
-                return (
-                  <NavLink
-                    key={track.id}
-                    to={"/track/" + track.id}
-                    className="side-link"
-                  >
-                    <Icon
-                      name={done ? "check" : "target"}
-                      className="side-link__icon"
-                      size={15}
-                    />
-                    <span>{track.title}</span>
-                    <span className="side-link__count">
-                      {info.solved}/{info.total}
-                    </span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          ) : null}
+          <div className="sidebar__group">
+            <p className="sidebar__label">Обучение</p>
+            <button className="side-link" type="button" onClick={function () { setDrawerOpen(true); }}>
+              <Icon name="scoreboard" className="side-link__icon" />
+              <span>Задания и прогресс</span>
+              {hud ? <span className="side-link__count">{hud.solved}/{hud.total}</span> : null}
+            </button>
+          </div>
 
           {hud ? (
             <div className="sidebar__agent">
@@ -218,9 +248,7 @@ export default function Layout() {
                 <div className="progress__fill" style={{ width: percent + "%" }} />
               </div>
               <div className="agent-card__meta">
-                <span>
-                  {hud.solved} из {hud.total}
-                </span>
+                <span>{hud.solved} из {hud.total}</span>
                 <span>{hud.rank.next ? "до " + hud.rank.next + ": " + hud.rank.toNext : "максимум"}</span>
               </div>
             </div>
@@ -237,10 +265,17 @@ export default function Layout() {
         </main>
       </div>
 
+      <ChallengesDrawer
+        open={drawerOpen}
+        onClose={function () { setDrawerOpen(false); }}
+        challenges={hud ? hud.challenges : []}
+        progress={hud}
+      />
+
       <Instructor challenges={hud ? hud.challenges : []} />
 
       <footer className="site-footer">
-        <span>MarketVault Academy</span>
+        <span>MarketVault Store</span>
         <span>·</span>
         <span>учебный стенд с намеренными уязвимостями</span>
         <span>·</span>
