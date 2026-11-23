@@ -12,39 +12,12 @@ API и GraphQL, устаревший PHP-портал, склад на Go, от�
 
 ## Скрины
 
-**Витрина**
+Место под скриншоты. Положите файлы в `docs/screenshots/` и вставьте их сюда, например:
 
-![Витрина](docs/screenshots/02-shop.png)
-![Каталог](docs/screenshots/03-shop-catalog.png)
-
-**Карточка товара и отзывы**
-
-![Карточка товара](docs/screenshots/04-product.png)
-![Отзывы](docs/screenshots/05-reviews.png)
-
-**Корзина, поддержка, задания**
-
-![Корзина и оплата](docs/screenshots/06-checkout.png)
-![Чат поддержки](docs/screenshots/07-support.png)
-![Панель заданий](docs/screenshots/08-scoreboard.png)
-
-**Обучение**
-
-![Список заданий](docs/screenshots/09-challenges.png)
-![Учебный план](docs/screenshots/10-path.png)
-![Трек](docs/screenshots/11-track.png)
-![Задание](docs/screenshots/12-challenge.png)
-
-**Тёмная тема**
-
-![Тёмная витрина](docs/screenshots/dark-01-shop.png)
-![Тёмная карточка товара](docs/screenshots/dark-02-product.png)
-![Тёмная корзина](docs/screenshots/dark-03-checkout.png)
-![Тёмные задания](docs/screenshots/dark-04-challenges.png)
-![Тёмная панель заданий](docs/screenshots/dark-05-scoreboard.png)
-![Тёмная поддержка](docs/screenshots/dark-06-support.png)
-
-Остальные экраны — [в каталоге со скриншотами](docs/screenshots).
+```markdown
+![Витрина](docs/screenshots/shop.png)
+![Карточка товара](docs/screenshots/product.png)
+```
 
 ## Что внутри
 
