@@ -187,6 +187,8 @@ services:
       CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000}"
       SUPPORT_LLM_URL: "${SUPPORT_LLM_URL:-}"
       SUPPORT_LLM_MODEL: "${SUPPORT_LLM_MODEL:-}"
+      # Как часто возвращать остатки товаров к изначальным, в минутах.
+      STOCK_RESET_MINUTES: "${STOCK_RESET_MINUTES:-15}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

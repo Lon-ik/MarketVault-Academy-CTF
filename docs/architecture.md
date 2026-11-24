@@ -121,3 +121,7 @@
   размещения значения нужно заменить.
 - Healthcheck есть у PostgreSQL, MongoDB и Redis; healthcheck приложений
   добавляется вместе с их Dockerfile на следующем этапе.
+- Витрина защищена от скупки: `inventory.stock_baseline` хранит изначальные
+  остатки (сид `14_stock_baseline.sql`), а `api-gateway` раз в 15 минут
+  возвращает их в `inventory.products`. Интервал задаётся переменной
+  `STOCK_RESET_MINUTES` (по умолчанию 15).

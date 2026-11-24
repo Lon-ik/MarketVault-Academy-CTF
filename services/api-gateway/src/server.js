@@ -20,6 +20,7 @@ const adminRouter = require("./routes/admin");
 const frontendRouter = require("./routes/frontend");
 const shopRouter = require("./routes/shop");
 const supportRouter = require("./routes/support");
+const { startStockReset } = require("./stock-reset");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -120,6 +121,8 @@ async function main() {
   app.use((req, res) => {
     return res.status(404).json({ error: "not found" });
   });
+
+  startStockReset();
 
   app.listen(config.port, "0.0.0.0", () => {
     console.log(`api-gateway listening on ${config.port}`);
