@@ -5,19 +5,17 @@ const { deviceId } = require("../device");
 
 const router = express.Router();
 
-// Прогресс читается как объединение: устройство (основное хранилище) + аккаунт
-// (старые записи, чтобы уже решённое не пропало).
-async function progressFor(device, userId) {
+// Прогресс живёт только на устройстве (cookie mv_device). Аккаунт на него не влияет:
+// под другим логином на том же браузере видно ровно то, что решено здесь.
+async function progressFor(device) {
   const row = await one(
     `SELECT COUNT(c.id) AS total_challenges,
-            COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, p.is_solved, FALSE)) AS solved_challenges
+            COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, FALSE)) AS solved_challenges
        FROM academy.challenges c
        LEFT JOIN academy.device_progress d
          ON d.challenge_id = c.id AND d.device_id = $1
-       LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $2::uuid
       WHERE c.is_active = TRUE`,
-    [device, userId]
+    [device]
   );
   const total = row ? Number(row.total_challenges) : 0;
   const solved = row ? Number(row.solved_challenges) : 0;
@@ -34,17 +32,15 @@ router.get("/challenges", requireUser, async (req, res) => {
     const result = await pool.query(
       `SELECT c.id, c.slug, c.title, c.service, c.category, c.difficulty,
               c.description, c.order_index,
-              COALESCE(d.is_solved, p.is_solved, FALSE) AS is_solved,
-              COALESCE(d.solved_at, p.solved_at) AS solved_at,
-              COALESCE(d.hints_used, p.hints_used, 0) AS hints_used
+              COALESCE(d.is_solved, FALSE) AS is_solved,
+              d.solved_at,
+              COALESCE(d.hints_used, 0) AS hints_used
        FROM academy.challenges c
        LEFT JOIN academy.device_progress d
          ON d.challenge_id = c.id AND d.device_id = $1
-       LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $2::uuid
        WHERE c.is_active = TRUE
        ORDER BY c.order_index`,
-      [device, req.user.sub]
+      [device]
     );
     return res.json({ challenges: result.rows });
   } catch (error) {
@@ -76,33 +72,29 @@ router.get("/leaderboard", requireUser, async (req, res) => {
 router.get("/progress", requireUser, async (req, res) => {
   try {
     const device = deviceId(req, res);
-    const summary = await progressFor(device, req.user.sub);
+    const summary = await progressFor(device);
     const services = await pool.query(
       `SELECT c.service,
               COUNT(*) AS total,
-              COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, p.is_solved, FALSE)) AS solved
+              COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, FALSE)) AS solved
        FROM academy.challenges c
        LEFT JOIN academy.device_progress d
          ON d.challenge_id = c.id AND d.device_id = $1
-       LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $2::uuid
        WHERE c.is_active = TRUE
        GROUP BY c.service
        ORDER BY c.service`,
-      [device, req.user.sub]
+      [device]
     );
     const recent = await pool.query(
-      `SELECT c.slug, c.title, COALESCE(d.solved_at, p.solved_at) AS solved_at
+      `SELECT c.slug, c.title, d.solved_at
        FROM academy.challenges c
-       LEFT JOIN academy.device_progress d
+       JOIN academy.device_progress d
          ON d.challenge_id = c.id AND d.device_id = $1
-       LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $2::uuid
        WHERE c.is_active = TRUE
-         AND COALESCE(d.is_solved, p.is_solved, FALSE) = TRUE
-       ORDER BY solved_at DESC NULLS LAST
+         AND d.is_solved = TRUE
+       ORDER BY d.solved_at DESC NULLS LAST
        LIMIT 5`,
-      [device, req.user.sub]
+      [device]
     );
     return res.json({
       ...summary,
@@ -205,7 +197,8 @@ router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
                      solved_at = COALESCE(academy.device_progress.solved_at, now())`,
       [device, challenge.id]
     );
-    // Дублируем в прогресс аккаунта: таблица лидеров и старые сверки читают её.
+    // Дублируем в прогресс аккаунта только ради таблицы лидеров:
+    // прогресс и «решено» в заданиях читаются исключительно с устройства.
     await pool.query(
       `INSERT INTO academy.user_progress
            (user_id, challenge_id, is_solved, solved_at, attempts, last_attempt_at)
@@ -215,7 +208,7 @@ router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
                      solved_at = COALESCE(academy.user_progress.solved_at, now())`,
       [req.user.sub, challenge.id]
     );
-    return res.json({ solved: true, progress: await progressFor(device, req.user.sub) });
+    return res.json({ solved: true, progress: await progressFor(device) });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

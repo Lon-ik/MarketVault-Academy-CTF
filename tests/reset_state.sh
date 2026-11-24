@@ -7,19 +7,8 @@ REDIS_PASS=$(grep -E '^REDIS_PASSWORD=' .env 2>/dev/null | cut -d= -f2 || true)
 REDIS_PASS=${REDIS_PASS:-marketvault}
 
 docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' <<'SQL'
-DELETE FROM academy.user_progress p
-USING academy.challenges c
-WHERE p.challenge_id = c.id
-  AND p.user_id = '11111111-1111-1111-1111-111111111111'
-  AND c.slug NOT IN ('jwt-alg-none', 'jwt-weak-secret', 'sqli-auth-bypass');
-
-INSERT INTO academy.user_progress (user_id, challenge_id, is_solved, solved_at)
-SELECT '11111111-1111-1111-1111-111111111111'::uuid, id, TRUE, now()
-FROM academy.challenges
-WHERE slug IN ('jwt-alg-none', 'jwt-weak-secret', 'sqli-auth-bypass')
-ON CONFLICT (user_id, challenge_id)
-DO UPDATE SET is_solved = TRUE,
-              solved_at = COALESCE(academy.user_progress.solved_at, now());
+DELETE FROM academy.user_progress
+WHERE user_id = '11111111-1111-1111-1111-111111111111';
 
 DELETE FROM academy.user_progress p
 USING auth.users u

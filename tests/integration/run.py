@@ -14,7 +14,11 @@ import requests
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "http://127.0.0.1:4000"
 FLAG_RE = re.compile(r"MV\{[^}]+\}")
-BASE_SOLVED = {"jwt-alg-none", "jwt-weak-secret", "sqli-auth-bypass"}
+# Прогресс заданий привязан к устройству (cookie mv_device), поэтому тесты ходят
+# с одним и тем же идентификатором устройства, как это делает браузер.
+DEVICE_ID = str(uuid.uuid4())
+DEVICE_COOKIES = {"mv_device": DEVICE_ID}
+BASE_SOLVED = set()
 
 RESULTS = []
 FLAGS = {}
@@ -70,6 +74,7 @@ def submit(slug, flag, token):
         BASE + f"/api/academy/challenges/{slug}/solve",
         headers={"Authorization": "Bearer " + token},
         json={"flag": flag},
+        cookies=DEVICE_COOKIES,
         timeout=15,
     )
     if response.status_code != 200:
@@ -97,7 +102,12 @@ def api_json(method, path, token=None, **kwargs):
     headers = kwargs.pop("headers", {})
     if token:
         headers["Authorization"] = "Bearer " + token
-    response = requests.request(method, BASE + path, headers=headers, timeout=30, **kwargs)
+    cookies = kwargs.pop("cookies", None)
+    if cookies is None:
+        cookies = dict(DEVICE_COOKIES)
+    response = requests.request(
+        method, BASE + path, headers=headers, cookies=cookies, timeout=30, **kwargs
+    )
     return response
 
 
@@ -503,6 +513,7 @@ def main():
             BASE + "/api/academy/challenges/dom-xss/solve",
             headers={"Authorization": "Bearer " + token},
             json={"flag": "MV{wrong}"},
+            cookies=DEVICE_COOKIES,
             timeout=15,
         )
         if wrong.status_code != 400:
@@ -521,6 +532,7 @@ def main():
                 BASE + "/api/academy/challenges/cache-poisoning/solve",
                 headers={"Authorization": "Bearer " + token},
                 json={"flag": FLAGS["cache-poisoning"]},
+                cookies=DEVICE_COOKIES,
                 timeout=20,
             ).status_code
 
@@ -539,7 +551,7 @@ def main():
     progress = api_json(
         "GET", "/api/academy/progress", token=baseline_token
     ).json()
-    if progress["solved"] != 3:
+    if progress["solved"] != len(BASE_SOLVED):
         RESULTS.append(("state-reset", "FAIL", f"solved={progress['solved']}"))
     else:
         RESULTS.append(("state-reset", "PASS", ""))
