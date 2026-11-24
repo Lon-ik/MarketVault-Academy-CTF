@@ -7,13 +7,6 @@ REDIS_PASS=$(grep -E '^REDIS_PASSWORD=' .env 2>/dev/null | cut -d= -f2 || true)
 REDIS_PASS=${REDIS_PASS:-marketvault}
 
 docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' <<'SQL'
-DELETE FROM academy.user_progress
-WHERE user_id = '11111111-1111-1111-1111-111111111111';
-
-DELETE FROM academy.user_progress p
-USING auth.users u
-WHERE p.user_id = u.id AND u.username LIKE 'qa_%';
-
 DELETE FROM academy.device_progress;
 
 DELETE FROM auth.users WHERE username LIKE 'qa_%';

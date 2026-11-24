@@ -10,11 +10,10 @@ FROM academy.challenges
 GROUP BY service
 ORDER BY service;
 SELECT
-    u.username,
-    p.solved_challenges,
-    p.total_challenges,
-    p.percent_solved
-FROM academy.v_user_progress p
-JOIN auth.users u ON u.id = p.user_id
-ORDER BY u.username;
+    d.device_id,
+    COUNT(*) FILTER (WHERE d.is_solved) AS solved,
+    (SELECT COUNT(*) FROM academy.challenges WHERE is_active = TRUE) AS total
+FROM academy.device_progress d
+GROUP BY d.device_id
+ORDER BY solved DESC;
 SQL

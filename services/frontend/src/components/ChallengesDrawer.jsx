@@ -72,7 +72,6 @@ export default function ChallengesDrawer({ open, onClose, challenges, progress }
           <nav className="drawer__links">
             <Link className="btn btn--ghost btn--sm" to="/challenges" onClick={onClose}>Все задания</Link>
             <Link className="btn btn--ghost btn--sm" to="/path" onClick={onClose}>Учебный план</Link>
-            <Link className="btn btn--ghost btn--sm" to="/leaderboard" onClick={onClose}>Рейтинг</Link>
           </nav>
 
           <label className="field">

@@ -136,7 +136,6 @@
 | GET | `/api/admin/flag` | cookie `connect.sid` | возвращает флаг при активной сессии |
 | GET | `/api/admin/summary` | — | сводка |
 | POST | `/api/partner/login` | `{ "username": "...", "password": "..." }` | MongoDB-вход |
-| GET | `/api/academy/leaderboard` | Bearer | список лидеров |
 | GET | `/api/frontend/bootstrap?page=search\|support` | cookie `connect.sid` | ставит лабораторные cookie для XSS-сценариев |
 | POST | `/api/profile/email` | cookie `connect.sid`, `{ "email": "..." }` | смена email, флаг при cross-site origin |
 | POST | `/api/checkout/confirm` | cookie `connect.sid`, `{ "framed": true }` | подтверждение заказа, флаг при встраивании |

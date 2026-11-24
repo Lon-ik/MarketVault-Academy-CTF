@@ -21,13 +21,6 @@ const PATHS = {
       <path d="m16 16 4.5 4.5" />
     </>
   ),
-  leaderboard: (
-    <>
-      <path d="M4 20V11" />
-      <path d="M12 20V4" />
-      <path d="M20 20v-6" />
-    </>
-  ),
   support: (
     <>
       <path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z" />

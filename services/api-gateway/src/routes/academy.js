@@ -48,27 +48,6 @@ router.get("/challenges", requireUser, async (req, res) => {
   }
 });
 
-router.get("/leaderboard", requireUser, async (req, res) => {
-  try {
-    const rows = await pool.query(
-      `SELECT u.username, v.solved_challenges, v.percent_solved
-       FROM academy.v_user_progress v
-       JOIN auth.users u ON u.id = v.user_id
-       ORDER BY v.solved_challenges DESC, u.username ASC
-       LIMIT 20`
-    );
-    return res.json({
-      leaders: rows.rows.map((row) => ({
-        username: row.username,
-        solved: Number(row.solved_challenges),
-        percent: Number(row.percent_solved),
-      })),
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
 router.get("/progress", requireUser, async (req, res) => {
   try {
     const device = deviceId(req, res);
@@ -196,17 +175,6 @@ router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
        DO UPDATE SET is_solved = TRUE,
                      solved_at = COALESCE(academy.device_progress.solved_at, now())`,
       [device, challenge.id]
-    );
-    // Дублируем в прогресс аккаунта только ради таблицы лидеров:
-    // прогресс и «решено» в заданиях читаются исключительно с устройства.
-    await pool.query(
-      `INSERT INTO academy.user_progress
-           (user_id, challenge_id, is_solved, solved_at, attempts, last_attempt_at)
-       VALUES ($1, $2, TRUE, now(), 1, now())
-       ON CONFLICT (user_id, challenge_id)
-       DO UPDATE SET is_solved = TRUE,
-                     solved_at = COALESCE(academy.user_progress.solved_at, now())`,
-      [req.user.sub, challenge.id]
     );
     return res.json({ solved: true, progress: await progressFor(device) });
   } catch (error) {

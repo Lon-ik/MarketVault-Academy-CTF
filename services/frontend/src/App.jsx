@@ -5,7 +5,6 @@ import Layout from "./components/Layout";
 import ChallengePage from "./pages/Challenge";
 import CheckoutPage from "./pages/Checkout";
 import DashboardPage from "./pages/Dashboard";
-import LeaderboardPage from "./pages/Leaderboard";
 import LoginPage from "./pages/Login";
 import NotFoundPage from "./pages/NotFound";
 import PathPage from "./pages/Path";
@@ -52,7 +51,6 @@ export default function App() {
           <Route path="/support" element={<SupportPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

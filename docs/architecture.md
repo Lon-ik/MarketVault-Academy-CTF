@@ -73,21 +73,23 @@
 - `flag` — эталонное значение, которое проверяет сервис;
 - `service`, `category`, `difficulty`, `order_index` — фильтры и сортировка.
 
-`academy.user_progress` — состояние пользователя:
+`academy.device_progress` — состояние прохождения, привязанное к устройству
+(cookie `mv_device`), а не к аккаунту:
 
-- первичный ключ `(user_id, challenge_id)`;
+- первичный ключ `(device_id, challenge_id)`;
 - `is_solved` и `solved_at` для прогресс-бара;
 - `attempts`, `last_attempt_at` для аналитики;
 - `hints_used`, `solution_revealed` для честной статистики.
 
-Представление `academy.v_user_progress` отдаёт `solved_challenges`,
-`total_challenges` и `percent_solved` — его использует Dashboard.
+Сводка по устройству (`solved`, `total`, `percent` и разбивка по сервисам)
+считается прямо в запросах Dashboard; отдельного представления и таблицы
+лидеров нет.
 
 ## Поток прогресса
 
 1. React загружает каталог через `GET /api/academy/challenges`.
-2. Для каждой карточки приходит состояние пользователя из
-   `academy.user_progress` (по JWT из auth-service).
+2. Для каждой карточки приходит состояние прохождения из
+   `academy.device_progress` по cookie `mv_device`; аккаунт на прогресс не влияет.
 3. Кнопка «Подсказки и разбор» вызывает `GET /api/academy/challenges/:slug/hints`
    и увеличивает `hints_used`.
 4. Вкладка «Показать разбор» вызывает `POST /api/academy/challenges/:slug/reveal`,
