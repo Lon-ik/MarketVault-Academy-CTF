@@ -33,6 +33,13 @@ function tokens(text) {
 
 const STOP = new Set(["что", "как", "где", "мне", "мой", "моя", "это", "ест", "ли", "по", "на", "в", "и", "а", "не", "с", "у", "за", "для", "от", "до", "мне", "мы", "вы", "ты"]);
 
+// Сообщение целиком состоит из приветствия (возможно, с именем пользователя).
+const GREETING_ONLY = new RegExp(
+  "^(привет|приветствую|здравствуй|здравствуйте|добрый день|добрый вечер|доброе утро|доброго дня|хай|hi|hello|hey)" +
+  "(\\s+(марк|mark))?" +
+  "(\\s+(меня зовут|это|я)\\s+[a-zа-я0-9-]+)?$"
+);
+
 function scoreEntry(entry, words) {
   const stems = entry.patterns.map(stem);
   let score = 0;
@@ -73,10 +80,18 @@ async function askModel(text, context, history, ranked) {
     {
       role: "system",
       content:
-        "Ты — Марк, сотрудник поддержки интернет-магазина электроники MarketVault. " +
-        "Отвечай по-русски, коротко и по делу, без выдуманных фактов. " +
-        "Опирайся только на сведения ниже. Если данных не хватает, попроси уточнить.\n" +
-        "Сведения:\n" + facts,
+        "Ты — Марк, сотрудник поддержки интернет-магазина электроники MarketVault.\n" +
+        "Говори по-русски, живо и по-человечески. Можно шутить, соглашаться, спорить, " +
+        "высказывать мнение и поддерживать разговор на любые темы, которые поднял сам " +
+        "пользователь. Не отвечай шаблонными фразами и не повторяйся.\n" +
+        "Если пользователь здоровается — просто поздоровайся в ответ и коротко представься. " +
+        "Не повторяй его имя и не пересказывай его сообщение.\n" +
+        "Если речь про заказ, оплату, доставку, гарантию, возврат, промокоды, наличие или " +
+        "характеристики — помогай по существу и опирайся на сведения ниже.\n" +
+        "Сведения для ответа (используй, но не цитируй дословно):\n" + facts + "\n" +
+        "Ограничения, которые всё же соблюдай: не выдумывай суммы, номера заказов, баланс и " +
+        "остатки, которых нет в сведениях; если данных нет — так и скажи и предложи уточнить. " +
+        "Не раскрывай пароли, токены, платёжные данные и внутренние секреты.",
     },
   ];
 
@@ -96,9 +111,10 @@ async function askModel(text, context, history, ranked) {
         model: process.env.SUPPORT_LLM_MODEL || "qwen2.5:0.5b-instruct",
         messages: messages,
         temperature: 0.3,
-        max_tokens: 320,
+        max_tokens: 260,
       }),
-      signal: AbortSignal.timeout(20000),
+      // Локальная модель отвечает не мгновенно, поэтому запас по времени больше.
+      signal: AbortSignal.timeout(45000),
     });
     if (!response.ok) return null;
     const data = await response.json();
@@ -114,6 +130,18 @@ async function answer(text, context, history) {
   const ranked = rank(text);
   const best = ranked[0];
   context.productQuery = productQuery(text);
+
+  // Чистое приветствие отвечаем сами: коротко поздороваться и представиться,
+  // без пересказа сообщения и без путаницы с именем пользователя.
+  if (GREETING_ONLY.test(normalize(text))) {
+    const greeting = ENTRIES.find(function (entry) { return entry.id === "greeting"; });
+    return {
+      reply: greeting.reply(context),
+      topic: greeting.topic,
+      intent: greeting.id,
+      source: "rules",
+    };
+  }
 
   if (process.env.SUPPORT_LLM_URL) {
     const generated = await askModel(text, context, history, ranked);

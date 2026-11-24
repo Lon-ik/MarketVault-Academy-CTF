@@ -25,6 +25,8 @@ DELETE FROM academy.user_progress p
 USING auth.users u
 WHERE p.user_id = u.id AND u.username LIKE 'qa_%';
 
+DELETE FROM academy.device_progress;
+
 DELETE FROM auth.users WHERE username LIKE 'qa_%';
 
 UPDATE auth.users

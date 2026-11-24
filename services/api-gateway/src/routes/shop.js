@@ -242,6 +242,18 @@ router.post("/checkout", async (req, res) => {
       return res.status(409).json({ error: "out of stock", stock: product.stock });
     }
 
+    const total = product.price * quantity;
+    const wallet = await one(
+      "SELECT balance FROM inventory.wallets WHERE user_id = $1::uuid",
+      [user.id]
+    );
+    if (!wallet) {
+      return res.status(404).json({ error: "wallet not found" });
+    }
+    if (wallet.balance < total) {
+      return res.status(402).json({ error: "insufficient funds", balance: wallet.balance, total: total });
+    }
+
     await sleep(1500);
 
     await query("UPDATE inventory.products SET stock = stock - $2 WHERE id = $1", [
@@ -252,7 +264,12 @@ router.post("/checkout", async (req, res) => {
     const order = await one(
       `INSERT INTO inventory.orders (user_id, total, status, address, notes)
        VALUES ($1::uuid, $2, 'paid', '', 'web checkout') RETURNING id`,
-      [user.id, product.price * quantity]
+      [user.id, total]
+    );
+
+    const paid = await one(
+      "UPDATE inventory.wallets SET balance = balance - $2 WHERE user_id = $1::uuid RETURNING balance",
+      [user.id, total]
     );
 
     const after = await one("SELECT stock FROM inventory.products WHERE id = $1", [productId]);
@@ -261,6 +278,8 @@ router.post("/checkout", async (req, res) => {
       orderId: order.id,
       product: product.title,
       quantity,
+      total: total,
+      balance: paid ? paid.balance : wallet.balance - total,
       stock: after.stock,
     });
   } catch (error) {

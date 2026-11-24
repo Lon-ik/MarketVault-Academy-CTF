@@ -101,6 +101,8 @@ async function main() {
         username: payload.username,
         role: payload.role,
       };
+      // История чата поддержки своя у каждого аккаунта, а не общая на устройство.
+      req.session.support = [];
       return res.json(data);
     } catch (error) {
       return res.status(502).json({ error: "auth service unavailable" });

@@ -1,36 +1,50 @@
 const express = require("express");
 const { one, pool } = require("../db");
 const { requireUser } = require("../auth");
+const { deviceId } = require("../device");
 
 const router = express.Router();
 
-async function progressFor(userId) {
+// Прогресс читается как объединение: устройство (основное хранилище) + аккаунт
+// (старые записи, чтобы уже решённое не пропало).
+async function progressFor(device, userId) {
   const row = await one(
-    "SELECT total_challenges, solved_challenges, percent_solved"
-      + " FROM academy.v_user_progress WHERE user_id = $1",
-    [userId]
+    `SELECT COUNT(c.id) AS total_challenges,
+            COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, p.is_solved, FALSE)) AS solved_challenges
+       FROM academy.challenges c
+       LEFT JOIN academy.device_progress d
+         ON d.challenge_id = c.id AND d.device_id = $1
+       LEFT JOIN academy.user_progress p
+         ON p.challenge_id = c.id AND p.user_id = $2::uuid
+      WHERE c.is_active = TRUE`,
+    [device, userId]
   );
+  const total = row ? Number(row.total_challenges) : 0;
+  const solved = row ? Number(row.solved_challenges) : 0;
   return {
-    total: row ? Number(row.total_challenges) : 0,
-    solved: row ? Number(row.solved_challenges) : 0,
-    percent: row ? Number(row.percent_solved) : 0,
+    total: total,
+    solved: solved,
+    percent: total ? Math.round((1000 * solved) / total) / 10 : 0,
   };
 }
 
 router.get("/challenges", requireUser, async (req, res) => {
   try {
+    const device = deviceId(req, res);
     const result = await pool.query(
       `SELECT c.id, c.slug, c.title, c.service, c.category, c.difficulty,
               c.description, c.order_index,
-              COALESCE(p.is_solved, FALSE) AS is_solved,
-              p.solved_at,
-              COALESCE(p.hints_used, 0) AS hints_used
+              COALESCE(d.is_solved, p.is_solved, FALSE) AS is_solved,
+              COALESCE(d.solved_at, p.solved_at) AS solved_at,
+              COALESCE(d.hints_used, p.hints_used, 0) AS hints_used
        FROM academy.challenges c
+       LEFT JOIN academy.device_progress d
+         ON d.challenge_id = c.id AND d.device_id = $1
        LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $1
+         ON p.challenge_id = c.id AND p.user_id = $2::uuid
        WHERE c.is_active = TRUE
        ORDER BY c.order_index`,
-      [req.user.sub]
+      [device, req.user.sub]
     );
     return res.json({ challenges: result.rows });
   } catch (error) {
@@ -61,27 +75,34 @@ router.get("/leaderboard", requireUser, async (req, res) => {
 
 router.get("/progress", requireUser, async (req, res) => {
   try {
-    const summary = await progressFor(req.user.sub);
+    const device = deviceId(req, res);
+    const summary = await progressFor(device, req.user.sub);
     const services = await pool.query(
       `SELECT c.service,
               COUNT(*) AS total,
-              COUNT(p.challenge_id) FILTER (WHERE p.is_solved) AS solved
+              COUNT(c.id) FILTER (WHERE COALESCE(d.is_solved, p.is_solved, FALSE)) AS solved
        FROM academy.challenges c
+       LEFT JOIN academy.device_progress d
+         ON d.challenge_id = c.id AND d.device_id = $1
        LEFT JOIN academy.user_progress p
-         ON p.challenge_id = c.id AND p.user_id = $1
+         ON p.challenge_id = c.id AND p.user_id = $2::uuid
        WHERE c.is_active = TRUE
        GROUP BY c.service
        ORDER BY c.service`,
-      [req.user.sub]
+      [device, req.user.sub]
     );
     const recent = await pool.query(
-      `SELECT c.slug, c.title, p.solved_at
-       FROM academy.user_progress p
-       JOIN academy.challenges c ON c.id = p.challenge_id
-       WHERE p.user_id = $1 AND p.is_solved = TRUE
-       ORDER BY p.solved_at DESC NULLS LAST
+      `SELECT c.slug, c.title, COALESCE(d.solved_at, p.solved_at) AS solved_at
+       FROM academy.challenges c
+       LEFT JOIN academy.device_progress d
+         ON d.challenge_id = c.id AND d.device_id = $1
+       LEFT JOIN academy.user_progress p
+         ON p.challenge_id = c.id AND p.user_id = $2::uuid
+       WHERE c.is_active = TRUE
+         AND COALESCE(d.is_solved, p.is_solved, FALSE) = TRUE
+       ORDER BY solved_at DESC NULLS LAST
        LIMIT 5`,
-      [req.user.sub]
+      [device, req.user.sub]
     );
     return res.json({
       ...summary,
@@ -99,6 +120,7 @@ router.get("/progress", requireUser, async (req, res) => {
 
 router.get("/challenges/:slug/hints", requireUser, async (req, res) => {
   try {
+    const device = deviceId(req, res);
     const challenge = await one(
       "SELECT id, hint_1, hint_2 FROM academy.challenges WHERE slug = $1 AND is_active = TRUE",
       [req.params.slug]
@@ -107,11 +129,11 @@ router.get("/challenges/:slug/hints", requireUser, async (req, res) => {
       return res.status(404).json({ error: "challenge not found" });
     }
     await pool.query(
-      `INSERT INTO academy.user_progress (user_id, challenge_id, hints_used)
+      `INSERT INTO academy.device_progress (device_id, challenge_id, hints_used)
        VALUES ($1, $2, 1)
-       ON CONFLICT (user_id, challenge_id)
-       DO UPDATE SET hints_used = academy.user_progress.hints_used + 1`,
-      [req.user.sub, challenge.id]
+       ON CONFLICT (device_id, challenge_id)
+       DO UPDATE SET hints_used = academy.device_progress.hints_used + 1`,
+      [device, challenge.id]
     );
     const level = Number(req.query.level || 1);
     return res.json({
@@ -125,6 +147,7 @@ router.get("/challenges/:slug/hints", requireUser, async (req, res) => {
 
 router.post("/challenges/:slug/reveal", requireUser, async (req, res) => {
   try {
+    const device = deviceId(req, res);
     const challenge = await one(
       `SELECT id, solution_payload, vulnerable_code, secure_code
        FROM academy.challenges WHERE slug = $1 AND is_active = TRUE`,
@@ -134,11 +157,11 @@ router.post("/challenges/:slug/reveal", requireUser, async (req, res) => {
       return res.status(404).json({ error: "challenge not found" });
     }
     await pool.query(
-      `INSERT INTO academy.user_progress (user_id, challenge_id, solution_revealed)
+      `INSERT INTO academy.device_progress (device_id, challenge_id, solution_revealed)
        VALUES ($1, $2, TRUE)
-       ON CONFLICT (user_id, challenge_id)
+       ON CONFLICT (device_id, challenge_id)
        DO UPDATE SET solution_revealed = TRUE`,
-      [req.user.sub, challenge.id]
+      [device, challenge.id]
     );
     return res.json({
       solution_payload: challenge.solution_payload,
@@ -152,6 +175,7 @@ router.post("/challenges/:slug/reveal", requireUser, async (req, res) => {
 
 router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
   try {
+    const device = deviceId(req, res);
     const challenge = await one(
       "SELECT id, flag FROM academy.challenges WHERE slug = $1 AND is_active = TRUE",
       [req.params.slug]
@@ -162,16 +186,26 @@ router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
     const submitted = String(req.body.flag || "").trim();
     if (submitted !== challenge.flag) {
       await pool.query(
-        `INSERT INTO academy.user_progress
-             (user_id, challenge_id, attempts, last_attempt_at)
+        `INSERT INTO academy.device_progress
+             (device_id, challenge_id, attempts, last_attempt_at)
          VALUES ($1, $2, 1, now())
-         ON CONFLICT (user_id, challenge_id)
-         DO UPDATE SET attempts = academy.user_progress.attempts + 1,
+         ON CONFLICT (device_id, challenge_id)
+         DO UPDATE SET attempts = academy.device_progress.attempts + 1,
                        last_attempt_at = now()`,
-        [req.user.sub, challenge.id]
+        [device, challenge.id]
       );
       return res.status(400).json({ solved: false, error: "wrong flag" });
     }
+    await pool.query(
+      `INSERT INTO academy.device_progress
+           (device_id, challenge_id, is_solved, solved_at, attempts, last_attempt_at)
+       VALUES ($1, $2, TRUE, now(), 1, now())
+       ON CONFLICT (device_id, challenge_id)
+       DO UPDATE SET is_solved = TRUE,
+                     solved_at = COALESCE(academy.device_progress.solved_at, now())`,
+      [device, challenge.id]
+    );
+    // Дублируем в прогресс аккаунта: таблица лидеров и старые сверки читают её.
     await pool.query(
       `INSERT INTO academy.user_progress
            (user_id, challenge_id, is_solved, solved_at, attempts, last_attempt_at)
@@ -181,7 +215,7 @@ router.post("/challenges/:slug/solve", requireUser, async (req, res) => {
                      solved_at = COALESCE(academy.user_progress.solved_at, now())`,
       [req.user.sub, challenge.id]
     );
-    return res.json({ solved: true, progress: await progressFor(req.user.sub) });
+    return res.json({ solved: true, progress: await progressFor(device, req.user.sub) });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
