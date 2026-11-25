@@ -148,6 +148,19 @@ services:
       - backend
     mem_limit: 256m
     cpus: 0.5
+    # Задания легаси-портала (RCE, LFI, XXE, upload, unserialize) остаются рабочими,
+    # но контейнер не может достать хост: нет доступа к диску хоста, ограничены
+    # процессы, память и запись. Uploads и /tmp живут в tmpfs с лимитом.
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/run/apache2:size=8m,mode=755
+      - /var/lock/apache2:size=8m,mode=755
+      - /var/lib/php/sessions:size=16m,mode=1777
+      - /var/www/html/uploads:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   stats-service:
@@ -192,7 +205,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "4000:4000"
+      # Наружу отдаём только через туннель: контейнеры до этих портов не дотянутся.
+      - "127.0.0.1:4000:4000"
     depends_on:
       auth-service:
         condition: service_started
@@ -221,7 +235,7 @@ services:
       VITE_API_BASE_URL: "${VITE_API_BASE_URL:-}"
       VITE_APP_NAME: "MarketVault Academy"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       api-gateway:
         condition: service_started

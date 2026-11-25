@@ -125,3 +125,9 @@
   остатки (сид `14_stock_baseline.sql`), а `api-gateway` раз в 15 минут
   возвращает их в `inventory.products`. Интервал задаётся переменной
   `STOCK_RESET_MINUTES` (по умолчанию 15).
+- Легаси-портал намеренно уязвим (RCE, LFI, XXE, upload, unserialize), поэтому
+  он ограничен по ресурсам и записи: `read_only` с `tmpfs` для `/tmp` и
+  `uploads`, `pids_limit`, `memory`/`cpus` и `no-new-privileges`. Порты `3000`
+  и `4000` публикуются только на `127.0.0.1`, сеть `backend` помечена
+  `internal: true` — из контейнеров хост недоступен, а задания остаются
+  решаемыми.
