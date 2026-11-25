@@ -72,9 +72,15 @@ export default function SearchPage() {
             </button>
           </form>
 
-          <div className="search-echo" style={{ color: "var(--ink-2)", fontWeight: 600 }}>
-            {query ? "Результаты по запросу «" + query + "»" : "Введите запрос, чтобы отфильтровать задания."}
-          </div>
+          <div
+            className="search-echo"
+            style={{ color: "var(--ink-2)", fontWeight: 600 }}
+            dangerouslySetInnerHTML={{
+              __html: query
+                ? "Результаты по запросу «" + query + "»"
+                : "Введите запрос, чтобы отфильтровать задания.",
+            }}
+          />
           <p className="meta-text" style={{ marginTop: 4 }}>
             {query ? "Найдено: " + results.length : "Запрос не задан"}
           </p>

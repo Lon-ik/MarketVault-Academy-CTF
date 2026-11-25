@@ -125,27 +125,15 @@ services:
       context: ./services/legacy-service
       network: host
     environment:
-      PGHOST: postgres
-      PGPORT: "5432"
-      PGDATABASE: "${POSTGRES_DB:-marketvault}"
-      PGUSER: "${POSTGRES_USER:-marketvault}"
-      PGPASSWORD: "${POSTGRES_PASSWORD:-marketvault}"
-      DB_SCHEMA: legacy
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-marketvault}"
       FLAG_DIR: /var/www/flags
     volumes:
       - ./runtime/flags/legacy:/var/www/flags:ro
     expose:
       - "80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    # Отдельная сеть: из скомпрометированного портала не видно ни базы, ни redis,
+    # ни остальных сервисов — только шлюз.
     networks:
-      - backend
+      - legacy
     mem_limit: 256m
     cpus: 0.5
     # Задания легаси-портала (RCE, LFI, XXE, upload, unserialize) остаются рабочими,
@@ -223,6 +211,7 @@ services:
     networks:
       - edge
       - backend
+      - legacy
     mem_limit: 256m
     cpus: 0.5
     restart: unless-stopped
@@ -251,6 +240,12 @@ networks:
   backend:
     driver: bridge
     internal: true
+  legacy:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   pgdata:
