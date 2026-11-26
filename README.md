@@ -12,17 +12,19 @@ API и GraphQL, устаревший PHP-портал, склад на Go, от�
 
 ## Скрины
 
-<img width="1879" height="2726" alt="Screenshot 2026-11-23 at 19-18-22 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/b60952c0-e934-43c1-9da2-351181782a8d" />
+Светлая тема, стенд целиком: от витрины и кошелька до заданий, треков и разбора.
+Все снимки лежат в [`docs/screenshots`](docs/screenshots) и сняты на текущей вёрстке
+(тёмная тема — та же вёрстка с другим набором токенов).
 
-<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-30 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/1389eb28-d506-48df-85e0-acb069b8635a" />
-
-<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-41 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/869527b8-8262-43cb-acbe-bb7917bcd3e8" />
-
-<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-18-48 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/48a90cd9-50b5-4284-a79e-8d4199f14c04" />
-
-<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-19-03 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/764d5161-e238-4d15-9331-e75f66fcfdfb" />
-
-<img width="1879" height="1013" alt="Screenshot 2026-11-23 at 19-19-09 MarketVault Academy — практика по веб-безопасности" src="https://github.com/user-attachments/assets/6bcaecb4-6575-4c57-899b-cc08216b0fd0" />
+|  |  |
+| --- | --- |
+| <img src="docs/screenshots/01-login.jpg" alt="Вход и демо-аккаунты" width="480"><br><sub>Вход и демо-аккаунты</sub> | <img src="docs/screenshots/02-register.jpg" alt="Регистрация" width="480"><br><sub>Регистрация</sub> |
+| <img src="docs/screenshots/03-shop.jpg" alt="Витрина магазина" width="480"><br><sub>Витрина магазина</sub> | <img src="docs/screenshots/04-product.jpg" alt="Карточка товара" width="480"><br><sub>Карточка товара</sub> |
+| <img src="docs/screenshots/05-search.jpg" alt="Поиск по заданиям" width="480"><br><sub>Поиск по заданиям</sub> | <img src="docs/screenshots/06-challenges.jpg" alt="Задания и прогресс" width="480"><br><sub>Задания и прогресс</sub> |
+| <img src="docs/screenshots/07-challenge.jpg" alt="Задание: условие и флаг" width="480"><br><sub>Задание: условие и флаг</sub> | <img src="docs/screenshots/08-path.jpg" alt="Учебный план" width="480"><br><sub>Учебный план</sub> |
+| <img src="docs/screenshots/09-track.jpg" alt="Трек «Аутентификация»" width="480"><br><sub>Трек «Аутентификация»</sub> | <img src="docs/screenshots/10-support.jpg" alt="Чат поддержки" width="480"><br><sub>Чат поддержки</sub> |
+| <img src="docs/screenshots/11-checkout.jpg" alt="Корзина и оплата" width="480"><br><sub>Корзина и оплата</sub> | <img src="docs/screenshots/12-profile.jpg" alt="Профиль и кошелёк" width="480"><br><sub>Профиль и кошелёк</sub> |
+| <img src="docs/screenshots/13-hints.jpg" alt="Подсказка по заданию" width="480"><br><sub>Подсказка по заданию</sub> | <img src="docs/screenshots/14-walkthrough.jpg" alt="Разбор с payload" width="480"><br><sub>Разбор с payload</sub> |
 
 ## Что внутри
 
@@ -39,8 +41,8 @@ API и GraphQL, устаревший PHP-портал, склад на Go, от�
   остатки и цены. Может работать как на встроенном движке, так и на локальной модели.
 - **Обучение**: 32 задания, 5 треков, подсказки в два уровня, разбор уязвимого и безопасного
   кода, плавающий инструктор и достижения.
-- **Тёмная тема**: переключается кнопкой в шапке, выбор запоминается, по умолчанию берётся
-  системная настройка.
+- **Темы**: тёмная «soot + orange» включена по умолчанию, светлая — тем же переключателем
+  в шапке; выбор запоминается.
 - **Инфраструктура**: PostgreSQL, MongoDB, Redis и шесть собственных сервисов.
 - **Автотесты**: эксплуатация всех сценариев, проверка изоляции и аудит секретов.
 
