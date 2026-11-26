@@ -10,10 +10,9 @@ export function storedTheme() {
 
 export function resolveTheme(mode) {
   if (mode === "light" || mode === "dark") return mode;
-  if (typeof window !== "undefined" && window.matchMedia) {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-  return "light";
+  // Оформление стенда — тёмное (справочник NestJS), поэтому «системная» тема
+  // всегда открывается в тёмном варианте.
+  return "dark";
 }
 
 export function applyTheme(mode) {
