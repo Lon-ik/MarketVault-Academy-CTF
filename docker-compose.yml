@@ -68,7 +68,8 @@ services:
       network: host
     environment:
       PORT: "8000"
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-marketvault}:${POSTGRES_PASSWORD:-marketvault}@postgres:5432/${POSTGRES_DB:-marketvault}"
+      # Минимальные права: SQL-инъекция в логине не даёт суперпользователя БД.
+      DATABASE_URL: "postgresql://auth_service:${AUTH_SERVICE_DB_PASSWORD:-auth-service-pass}@postgres:5432/${POSTGRES_DB:-marketvault}"
       DB_SCHEMA: auth
       REDIS_URL: "redis://:${REDIS_PASSWORD:-marketvault}@redis:6379/0"
       JWT_SECRET: "${JWT_SECRET:-weak-jwt-secret}"
